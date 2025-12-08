@@ -11,6 +11,7 @@ import {
   FiChevronDown,
   FiMenu,
 } from "react-icons/fi";
+import { PiHandshake } from "react-icons/pi";
 import { MdHistoryEdu } from "react-icons/md";
 import { FaOpencart } from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ const Header = ({ onToggleSidebar = () => {} }) => {
       "/favorites": "Favorites",
       "/contact": "Contact",
       "/profile": "Profile",
+      "/deals": "My Deals",
     };
     return routeTitleMap[pathname] || "Happily Mart";
   };
@@ -135,6 +137,16 @@ const Header = ({ onToggleSidebar = () => {} }) => {
 
           {isAuthenticated && (
             <button
+              onClick={() => navigate("/deals")}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+              title="My Deals"
+            >
+              <PiHandshake className="text-lg sm:text-xl text-gray-600 dark:text-gray-400" />
+            </button>
+          )}
+
+          {isAuthenticated && (
+            <button
               onClick={() => navigate("/payment-history")}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
               title="Purchase History"
@@ -194,6 +206,16 @@ const Header = ({ onToggleSidebar = () => {} }) => {
                   >
                     <FiUser className="text-lg" />
                     <span>Profile</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/deals");
+                      setShowDropdown(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                  >
+                    <PiHandshake className="text-lg" />
+                    <span>My Deals</span>
                   </button>
                   <button
                     onClick={() => {

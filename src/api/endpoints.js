@@ -11,6 +11,13 @@ export const API_ENDPOINTS = {
     REFRESH_TOKEN: "/auth/refresh-token",
     ME: "/auth/me",
   },
+  // Admin Auth
+  ADMIN_AUTH: {
+    LOGIN: "/auth/login",
+    LOGOUT: "/auth/logout",
+    REFRESH_TOKEN: "/auth/refresh-token",
+    ME: "/auth/me",
+  },
   // User
   USER: {
     PROFILE: "/user/profile",
@@ -27,6 +34,13 @@ export const API_ENDPOINTS = {
     VERIFY_REACTIVATION: "/user/account/verify-reactivation",
     VERIFY_EMAIL_CHANGE: "/user/email/change/verify",
   },
+  // Admin Users
+  ADMIN_USERS: {
+    GET_ALL: "/admin/users",
+    GET_BY_ID: (id) => `/admin/users/${id}`,
+    UPDATE: (id) => `/admin/users/${id}`,
+    DEACTIVATE: (id) => `/admin/users/${id}/deactivate`,
+  },
   // Posts
   POSTS: {
     CREATE: "/posts",
@@ -42,6 +56,28 @@ export const API_ENDPOINTS = {
     GET_COMMENTS: (id) => `/posts/${id}/comments`,
     UNLOCK: (id) => `/posts/${id}/unlock`,
   },
+  // Admin Posts
+  ADMIN_POSTS: {
+    GET_ALL: "/admin/posts",
+    GET_BY_ID: (id) => `/admin/posts/${id}`,
+    UPDATE_STATUS: (id) => `/admin/posts/${id}/status`,
+  },
+  // Deals
+  DEALS: {
+    GET_USER_DEALS: "/deals",
+    GET_STATS: "/deals/stats",
+    GET_BY_ID: (id) => `/deals/${id}`,
+    UPDATE_STATUS: (id) => `/deals/${id}/status`,
+    GET_NOTIFICATIONS: "/deals/notifications",
+    MARK_NOTIFICATION_READ: (notificationId) => `/deals/notifications/${notificationId}/read`,
+  },
+  // Admin Deals
+  ADMIN_DEALS: {
+    GET_ALL: "/admin/deals",
+    GET_BY_ID: (id) => `/admin/deals/${id}`,
+    UPDATE_STATUS: (id) => `/admin/deals/${id}/status`,
+    CLOSE: (id) => `/admin/deals/${id}`,
+  },
   // Payments
   PAYMENTS: {
     CREATE_ORDER: "/payments/create-order",
@@ -56,5 +92,10 @@ export const API_ENDPOINTS = {
     VERIFY: "/subscriptions/verify-payment",
     HISTORY: "/subscriptions/history",
     USE_CREDIT: "/subscriptions/use-credit",
+  },
+  // Admin Analytics
+  ADMIN_ANALYTICS: {
+    DEALS: "/admin/analytics/deals",
+    ACTIVITY: "/admin/analytics/activity",
   },
 };

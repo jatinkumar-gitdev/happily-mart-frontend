@@ -1,60 +1,51 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8800/api";
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  baseURL: BASE_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    // First try to get from localStorage/sessionStorage (based on rememberMe)
-    const isRemembered = localStorage.getItem("rememberMe") === "true";
-    const storage = isRemembered ? localStorage : sessionStorage;
-    let token = storage.getItem("authToken");
-
-    // Fall back to cookie if not found in storage
-    if (!token) {
-      token = Cookies.get("accessToken");
-      // If found in cookie, also store it in appropriate storage
+    const isAdminRequest = config.url.includes("/admin/");
+    
+    if (isAdminRequest) {
+      let token = localStorage.getItem("adminToken") || Cookies.get("adminToken");
       if (token) {
-        if (isRemembered) {
-          localStorage.setItem("authToken", token);
-        } else {
-          sessionStorage.setItem("authToken", token);
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } else {
+      const isRemembered = localStorage.getItem("rememberMe") === "true";
+      const storage = isRemembered ? localStorage : sessionStorage;
+      let token = storage.getItem("authToken") || Cookies.get("accessToken");
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        if (!storage.getItem("authToken")) {
+          storage.setItem("authToken", token);
         }
       }
     }
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    // Add security headers
     config.headers["X-Requested-With"] = "XMLHttpRequest";
-    config.headers["Content-Type"] = config.headers["Content-Type"] || "application/json";
     config.headers["X-Content-Type-Options"] = "nosniff";
 
-    // Add timestamp to prevent replay attacks for sensitive operations
-    if (config.method === "post" || config.method === "put" || config.method === "delete") {
+    if (["post", "put", "delete"].includes(config.method)) {
       config.headers["X-Request-Time"] = Date.now().toString();
-      
-      // Add request ID for tracking and preventing duplicate requests
       config.headers["X-Request-ID"] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -62,53 +53,64 @@ axiosInstance.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+      const isAdminRequest = originalRequest.url.includes("/admin/");
 
       try {
         const response = await axios.post(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:8000/api"
-          }/auth/refresh-token`,
+          `${BASE_URL}/auth/refresh-token`,
           {},
           { withCredentials: true }
         );
 
         const { accessToken } = response.data;
 
-        // Update token in appropriate storage
-        const isRemembered = localStorage.getItem("rememberMe") === "true";
-        const storage = isRemembered ? localStorage : sessionStorage;
-        storage.setItem("authToken", accessToken);
-
-        // Also update cookie with appropriate expiry
-        Cookies.set("accessToken", accessToken, {
-          expires: isRemembered ? 30 : 1,
-        });
+        if (isAdminRequest) {
+          const isRemembered = localStorage.getItem("adminRememberMe") === "true";
+          Cookies.set("adminToken", accessToken, {
+            expires: isRemembered ? 30 : 1,
+            secure: import.meta.env.MODE === "production",
+            sameSite: "strict",
+            path: "/",
+          });
+          if (isRemembered) {
+            localStorage.setItem("adminToken", accessToken);
+          }
+        } else {
+          const isRemembered = localStorage.getItem("rememberMe") === "true";
+          const storage = isRemembered ? localStorage : sessionStorage;
+          storage.setItem("authToken", accessToken);
+          Cookies.set("accessToken", accessToken, {
+            expires: isRemembered ? 30 : 1,
+            secure: import.meta.env.MODE === "production",
+            sameSite: "strict",
+          });
+        }
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Clear from all storages on refresh failure
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("rememberMe");
-        localStorage.removeItem("auth-storage");
-        sessionStorage.removeItem("authToken");
-        sessionStorage.clear();
-        Cookies.remove("accessToken");
-        Cookies.remove("refreshToken");
-        
-        // Secure redirect to login
-        const currentPath = window.location.pathname;
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        if (isAdminRequest) {
+          Cookies.remove("adminToken", { path: "/" });
+          localStorage.removeItem("adminToken");
+          localStorage.removeItem("adminRememberMe");
+          localStorage.removeItem("adminUser");
+          window.location.href = "/admin/login";
+        } else {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("auth-storage");
+          sessionStorage.clear();
+          Cookies.remove("accessToken");
+          Cookies.remove("refreshToken");
+          const currentPath = window.location.pathname;
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        }
         return Promise.reject(refreshError);
       }
     }
 
-    // Handle 403 Forbidden (insufficient permissions)
     if (error.response?.status === 403) {
-      const errorMessage = error.response?.data?.message || "Access denied";
-      // Preserve original error but ensure message is descriptive
-      error.message = errorMessage;
-      return Promise.reject(error);
+      error.message = error.response?.data?.message || "Access denied";
     }
 
     return Promise.reject(error);

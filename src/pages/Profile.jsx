@@ -100,12 +100,30 @@ const Profile = () => {
       profileData.city,
       profileData.sector,
       profileData.commodities,
+      profileData.address1,
+      profileData.alternateEmail,
+      profileData.alternatePhone,
+      profileData.linkedin,
+      profileData.website,
+      profileData.gstinNumber,
+      profileData.registrationNumber,
+      profileData.companyType,
+      profileData.companyStructure,
+      profileData.subSector,
     ];
 
     const filledFields = fields.filter(
       (field) => field && field.toString().trim() !== ""
     ).length;
     return Math.round((filledFields / fields.length) * 100);
+  };
+
+  // Ensure all form fields are properly updated in formData
+  const handleFieldChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const profileCompletion = profile ? calculateProfileCompletion(profile) : 0;
@@ -575,6 +593,75 @@ const Profile = () => {
                   </p>
                 </div>
 
+                {/* User Activity Stats */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Your Activity
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg border border-blue-200 dark:border-blue-700 p-4 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+                      <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                          <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                        <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                          {profile.posts || 0}
+                        </div>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mt-1 font-medium">
+                          Posts Created
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg border border-green-200 dark:border-green-700 p-4 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+                      <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                          <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <div className="text-2xl font-bold text-green-700 dark:text-green-300">
+                          {profile.unlocked || 0}
+                        </div>
+                        <p className="text-xs text-green-600 dark:text-green-400 uppercase tracking-wide mt-1 font-medium">
+                          Posts Unlocked
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg border border-purple-200 dark:border-purple-700 p-4 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+                      <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 mb-3">
+                          <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                          {profile.deals || 0}
+                        </div>
+                        <p className="text-xs text-purple-600 dark:text-purple-400 uppercase tracking-wide mt-1 font-medium">
+                          Active Deals
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 rounded-lg border border-orange-200 dark:border-orange-700 p-4 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+                      <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/50 mb-3">
+                          <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                          {profile.connections || 0}
+                        </div>
+                        <p className="text-xs text-orange-600 dark:text-orange-400 uppercase tracking-wide mt-1 font-medium">
+                          Connections
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Subscription Info Card */}
                 {mySubscription?.subscription && (
                   <div className="mb-8 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border border-sky-200 dark:border-sky-800 rounded-lg p-6">
@@ -598,20 +685,23 @@ const Profile = () => {
                       </Button>
                     </div>
 
-                    {/* Credits Breakdown */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Total Credits
-                          </span>
-                          <span className="text-2xl font-bold text-sky-600 dark:text-sky-400">
+                    {/* Credits Breakdown with Enhanced Visualization */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-sky-500"></div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Total Credits
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-sky-600 dark:text-sky-400">
                             {mySubscription.subscription.credits || 0}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 mb-2">
                           <div
-                            className="bg-gradient-to-r from-sky-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-sky-400 to-sky-600 h-3 rounded-full transition-all duration-500 ease-out"
                             style={{
                               width: `${Math.min(
                                 ((mySubscription.subscription.credits || 0) /
@@ -622,20 +712,26 @@ const Profile = () => {
                             }}
                           ></div>
                         </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {mySubscription.subscription.planDetails?.credits || 0} included in plan
+                        </div>
                       </div>
                       
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Unlock Credits
-                          </span>
-                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Unlock Credits
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
                             {mySubscription.subscription.unlockCredits || 0}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 mb-2">
                           <div
-                            className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500 ease-out"
                             style={{
                               width: `${Math.min(
                                 ((mySubscription.subscription.unlockCredits || 0) /
@@ -646,20 +742,26 @@ const Profile = () => {
                             }}
                           ></div>
                         </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {mySubscription.subscription.planDetails?.unlockCredits || 0} included in plan
+                        </div>
                       </div>
                       
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            Create Credits
-                          </span>
-                          <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Create Credits
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
                             {mySubscription.subscription.createCredits || 0}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3 mb-2">
                           <div
-                            className="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-purple-400 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out"
                             style={{
                               width: `${Math.min(
                                 ((mySubscription.subscription.createCredits || 0) /
@@ -670,6 +772,57 @@ const Profile = () => {
                             }}
                           ></div>
                         </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {mySubscription.subscription.planDetails?.createCredits || 0} included in plan
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Subscription Details */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="font-medium text-blue-800 dark:text-blue-200">Plan Validity</span>
+                        </div>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          {mySubscription.subscription.expiresAt && !mySubscription.subscription.isExpired ? (
+                            <>
+                              Expires on {new Date(mySubscription.subscription.expiresAt).toLocaleDateString()}
+                              <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full text-xs">
+                                {Math.ceil((new Date(mySubscription.subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24))} days left
+                              </span>
+                            </>
+                          ) : mySubscription.subscription.isExpired ? (
+                            <span className="text-red-600 dark:text-red-400">Expired</span>
+                          ) : (
+                            "Lifetime"
+                          )}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="font-medium text-purple-800 dark:text-purple-200">Plan Benefits</span>
+                        </div>
+                        <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                          {mySubscription.subscription.planDetails?.features?.slice(0, 2).map((feature, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="mr-2">•</span>
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                          {mySubscription.subscription.planDetails?.features?.length > 2 && (
+                            <li className="text-xs text-purple-600 dark:text-purple-400">
+                              +{mySubscription.subscription.planDetails.features.length - 2} more benefits
+                            </li>
+                          )}
+                        </ul>
                       </div>
                     </div>
 
@@ -706,9 +859,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.name || "" : profile.name || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -719,12 +870,7 @@ const Profile = () => {
                           ? formData.designation || ""
                           : profile.designation || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          designation: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('designation', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -734,9 +880,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.email || "" : profile.email || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
                       disabled={!isEditing}
                     />
                     {profile.pendingEmail && !showEmailVerification && (
@@ -758,12 +902,7 @@ const Profile = () => {
                           ? formData.alternateEmail || ""
                           : profile.alternateEmail || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          alternateEmail: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('alternateEmail', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -772,9 +911,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.phone || "" : profile.phone || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -785,12 +922,7 @@ const Profile = () => {
                           ? formData.alternatePhone || ""
                           : profile.alternatePhone || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          alternatePhone: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('alternatePhone', e.target.value)}
                       disabled={!isEditing}
                     />
                   </div>
@@ -810,12 +942,7 @@ const Profile = () => {
                           ? formData.companyName || ""
                           : profile.companyName || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          companyName: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('companyName', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -826,12 +953,7 @@ const Profile = () => {
                           ? formData.registrationNumber || ""
                           : profile.registrationNumber || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          registrationNumber: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('registrationNumber', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -842,12 +964,7 @@ const Profile = () => {
                           ? formData.gstinNumber || ""
                           : profile.gstinNumber || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          gstinNumber: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('gstinNumber', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -858,12 +975,7 @@ const Profile = () => {
                           ? formData.companyType || ""
                           : profile.companyType || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          companyType: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('companyType', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -874,12 +986,7 @@ const Profile = () => {
                           ? formData.companyStructure || ""
                           : profile.companyStructure || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          companyStructure: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('companyStructure', e.target.value)}
                       disabled={!isEditing}
                     />
                   </div>
@@ -900,9 +1007,7 @@ const Profile = () => {
                             ? formData.address1 || ""
                             : profile.address1 || ""
                         }
-                        onChange={(e) =>
-                          setFormData({ ...formData, address1: e.target.value })
-                        }
+                        onChange={(e) => handleFieldChange('address1', e.target.value)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -915,12 +1020,7 @@ const Profile = () => {
                             ? formData.alternateAddress || ""
                             : profile.alternateAddress || ""
                         }
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            alternateAddress: e.target.value,
-                          })
-                        }
+                        onChange={(e) => handleFieldChange('alternateAddress', e.target.value)}
                         disabled={!isEditing}
                       />
                     </div>
@@ -932,9 +1032,7 @@ const Profile = () => {
                           ? formData.country || ""
                           : profile.country || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, country: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('country', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -943,9 +1041,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.state || "" : profile.state || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, state: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('state', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -954,9 +1050,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.city || "" : profile.city || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, city: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('city', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -967,12 +1061,7 @@ const Profile = () => {
                           ? formData.commodities || ""
                           : profile.commodities || ""
                       }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          commodities: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange('commodities', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -981,9 +1070,7 @@ const Profile = () => {
                       value={
                         isEditing ? formData.sector || "" : profile.sector || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, sector: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('sector', e.target.value)}
                       disabled={!isEditing}
                     />
                     <Input
@@ -994,9 +1081,7 @@ const Profile = () => {
                           ? formData.subSector || ""
                           : profile.subSector || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, subSector: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('subSector', e.target.value)}
                       disabled={!isEditing}
                     />
                   </div>
@@ -1016,9 +1101,7 @@ const Profile = () => {
                           ? formData.linkedin || ""
                           : profile.linkedin || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, linkedin: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('linkedin', e.target.value)}
                       disabled={!isEditing}
                       placeholder="https://linkedin.com/in/yourprofile"
                     />
@@ -1030,9 +1113,7 @@ const Profile = () => {
                           ? formData.twitter || ""
                           : profile.twitter || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, twitter: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('twitter', e.target.value)}
                       disabled={!isEditing}
                       placeholder="https://twitter.com/yourhandle"
                     />
@@ -1044,9 +1125,7 @@ const Profile = () => {
                           ? formData.website || ""
                           : profile.website || ""
                       }
-                      onChange={(e) =>
-                        setFormData({ ...formData, website: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange('website', e.target.value)}
                       disabled={!isEditing}
                       placeholder="https://yourwebsite.com"
                     />

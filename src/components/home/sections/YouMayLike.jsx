@@ -4,7 +4,7 @@ import { MdPostAdd } from "react-icons/md";
 import { useResponsive } from "../hooks";
 import HeroCarousel from "./HeroCarousel";
 import { YouMayLikeData } from "../../../data/YouMayLike";
-import CreatePost from "../../feed/CreatePost";
+import CreatePostModal from "../../feed/CreatePostModal";
 
 
 const YouMayLike = () => {
@@ -23,9 +23,6 @@ const YouMayLike = () => {
             viewport={{ once: true }}
           >
             <HeroCarousel />
-        
-
-
           </motion.div>
 
           <motion.div
@@ -106,7 +103,7 @@ const YouMayLike = () => {
                     className="relative w-full max-w-2xl mx-4 z-50"
                   >
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-                      <CreatePost open={true} onClose={() => setShowRequestForm(false)} />
+                      <CreatePostModal isOpen={true} onClose={() => setShowRequestForm(false)} />
                     </div>
                   </motion.div>
                   <div

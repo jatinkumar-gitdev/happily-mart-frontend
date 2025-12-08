@@ -21,7 +21,7 @@ const CommentsSection = ({ postId, isAuthenticated }) => {
     mutationFn: (text) => postService.addComment(postId, text),
     onSuccess: () => {
       queryClient.invalidateQueries(["comments", postId]);
-      queryClient.invalidateQueries(["posts"]);
+      queryClient.invalidateQueries(["posts", true]);
       setCommentText("");
       showSuccess("Comment added successfully!");
     },

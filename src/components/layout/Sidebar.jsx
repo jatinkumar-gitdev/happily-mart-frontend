@@ -8,7 +8,9 @@ import {
   FiStar,
   FiX,
   FiCreditCard,
+  FiFileText,
 } from "react-icons/fi";
+import { PiHandshake } from "react-icons/pi";
 import { MdDynamicFeed } from "react-icons/md";
 import { TbLayoutSidebarLeftCollapse } from "react-icons/tb";
 import { HiOutlineLightningBolt } from "react-icons/hi";
@@ -57,6 +59,11 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
       icon: FiStar,
     });
     navItems.splice(2, 0, {
+      to: "/deals",
+      label: "My Deals",
+      icon: PiHandshake,
+    });
+    navItems.splice(3, 0, {
       to: "/subscription",
       label: "Subscription",
       icon: FiCreditCard,

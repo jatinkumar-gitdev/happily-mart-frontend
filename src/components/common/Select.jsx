@@ -24,7 +24,7 @@ const Select = ({
           error
             ? "border-red-300 dark:border-red-600"
             : "border-gray-300 dark:border-gray-600"
-        } rounded-lg focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white transition-colors ${className}`}
+        } rounded-lg focus:ring-2 focus:ring-sky-500 dark:focus:ring-sky-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors ${className}`}
         {...props}
       >
         <option value="">{placeholder}</option>

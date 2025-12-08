@@ -14,6 +14,7 @@ import {
   FiGrid,
   FiLock,
   FiList,
+  FiFilter,
 } from "react-icons/fi";
 
 import Loader from "../components/common/Loader";
@@ -36,8 +37,14 @@ const Feed = () => {
   const [viewMode, setViewMode] = useState("list");
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("all"); // all, today, yesterday, recent
   const loadMoreRef = useRef(null);
 
+  const [showNewPostLoading, setShowNewPostLoading] = useState(false);
+  
   const {
     data: infinitePosts,
     isLoading: isPostsLoading,
@@ -56,6 +63,33 @@ const Feed = () => {
     },
     enabled: isAuthenticated,
   });
+  
+  // Handle post creation event
+  useEffect(() => {
+    // Store refetch function in a ref so we can access it in the global handler
+    if (refetchPosts) {
+      window.feedRefetchPosts = refetchPosts;
+    }
+    
+    const handlePostCreated = () => {
+      setShowNewPostLoading(true);
+      // Simulate 3-second loading
+      setTimeout(() => {
+        setShowNewPostLoading(false);
+        // Refetch posts after the delay
+        if (window.feedRefetchPosts) {
+          window.feedRefetchPosts();
+        }
+      }, 3000);
+    };
+    
+    window.onPostCreated = handlePostCreated;
+    
+    return () => {
+      window.onPostCreated = null;
+      window.feedRefetchPosts = null;
+    };
+  }, [refetchPosts]);
 
   const { data: publicPostsData, isLoading: isPublicLoading } = useQuery({
     queryKey: ["publicPosts"],
@@ -76,7 +110,53 @@ const Feed = () => {
 
   const displayPosts = useMemo(() => {
     if (!posts.length) return [];
-    const list = [...posts];
+    let list = [...posts];
+    
+    // Apply category/subcategory filters
+    if (categoryFilter) {
+      list = list.filter(post => post.category === categoryFilter);
+    }
+    
+    if (subcategoryFilter) {
+      list = list.filter(post => post.subcategory === subcategoryFilter);
+    }
+    
+    // Apply date filter
+    if (dateFilter !== "all") {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      switch (dateFilter) {
+        case "today":
+          list = list.filter(post => {
+            const postDate = new Date(post.createdAt);
+            const postDay = new Date(postDate.getFullYear(), postDate.getMonth(), postDate.getDate());
+            return postDay.getTime() === today.getTime();
+          });
+          break;
+        case "yesterday":
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          list = list.filter(post => {
+            const postDate = new Date(post.createdAt);
+            const postDay = new Date(postDate.getFullYear(), postDate.getMonth(), postDate.getDate());
+            return postDay.getTime() === yesterday.getTime();
+          });
+          break;
+        case "recent":
+          // Last 7 days
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          list = list.filter(post => {
+            const postDate = new Date(post.createdAt);
+            return postDate >= weekAgo;
+          });
+          break;
+        default:
+          break;
+      }
+    }
+    
     if (filter === "latest") {
       return list.sort(
         (a, b) =>
@@ -92,7 +172,20 @@ const Feed = () => {
         (post.comments?.length || 0);
       return score(b) - score(a);
     });
-  }, [posts, filter]);
+  }, [posts, filter, categoryFilter, subcategoryFilter, dateFilter]);
+
+  // Get unique categories and subcategories for filter options
+  const categories = useMemo(() => {
+    if (!posts.length) return [];
+    const uniqueCategories = [...new Set(posts.map(post => post.category))];
+    return uniqueCategories.filter(Boolean);
+  }, [posts]);
+
+  const subcategories = useMemo(() => {
+    if (!posts.length) return [];
+    const uniqueSubcategories = [...new Set(posts.map(post => post.subcategory))];
+    return uniqueSubcategories.filter(Boolean);
+  }, [posts]);
 
   const publicPosts = isAuthenticated
     ? []
@@ -175,6 +268,17 @@ const Feed = () => {
                 </span>
               </button>
               <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-2 rounded-lg transition-colors ${
+                  showFilters
+                    ? "bg-sky-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+                }`}
+                title="Toggle filters"
+              >
+                <FiFilter className="text-xl" />
+              </button>
+              <button
                 onClick={() =>
                   setViewMode((prev) => (prev === "list" ? "grid" : "list"))
                 }
@@ -195,6 +299,73 @@ const Feed = () => {
               </button>
             </div>
 
+            {/* Filters Panel */}
+            {showFilters && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    >
+                      <option value="">All Categories</option>
+                      {categories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Subcategory
+                    </label>
+                    <select
+                      value={subcategoryFilter}
+                      onChange={(e) => setSubcategoryFilter(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    >
+                      <option value="">All Subcategories</option>
+                      {subcategories.map(subcategory => (
+                        <option key={subcategory} value={subcategory}>{subcategory}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date
+                    </label>
+                    <select
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                    >
+                      <option value="all">All Dates</option>
+                      <option value="today">Today</option>
+                      <option value="yesterday">Yesterday</option>
+                      <option value="recent">Last 7 Days</option>
+                    </select>
+                  </div>
+                </div>
+                {(categoryFilter || subcategoryFilter || dateFilter !== "all") && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        setCategoryFilter("");
+                        setSubcategoryFilter("");
+                        setDateFilter("all");
+                      }}
+                      className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {!isAuthenticated && publicPosts.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
@@ -207,6 +378,7 @@ const Feed = () => {
                       post={post}
                       isBlurred={false}
                       onUnlockClick={handleUnlockClick}
+                      viewMode="list"
                     />
                   ))}
                 </div>
@@ -235,6 +407,7 @@ const Feed = () => {
                       post={post}
                       isBlurred={true}
                       onUnlockClick={handleUnlockClick}
+                      viewMode={viewMode}
                     />
                   ))}
                 </div>
@@ -244,12 +417,12 @@ const Feed = () => {
             {/* All Posts for Logged In Users */}
             {isAuthenticated && (
               <div>
-                {isPostsLoading ? (
-                  <LoadingState message="Loading Requirements..." />
+                {isPostsLoading || showNewPostLoading ? (
+                  <LoadingState message={showNewPostLoading ? "New post is being processed..." : "Loading Requirements..."} />
                 ) : displayPosts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">
-                      No posts yet
+                      No posts found matching your criteria
                     </p>
                   </div>
                 ) : (
@@ -267,6 +440,7 @@ const Feed = () => {
                           post={post}
                           isBlurred={false}
                           onUnlockClick={handleUnlockClick}
+                          viewMode={viewMode}
                         />
                       ))}
                     </div>

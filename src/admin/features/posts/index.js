@@ -1,0 +1,1 @@
+export { default as PostsManagementPage } from './pages/PostsManagement';

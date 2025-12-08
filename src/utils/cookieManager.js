@@ -4,8 +4,9 @@ export const cookieManager = {
   set: (name, value, options = {}) => {
     Cookies.set(name, value, {
       expires: options.expires || 1,
-      secure: process.env.NODE_ENV === "production",
+      secure: import.meta.env.MODE === "production",
       sameSite: "strict",
+      path: "/",
       ...options,
     });
   },
@@ -15,13 +16,13 @@ export const cookieManager = {
   },
 
   remove: (name) => {
-    Cookies.remove(name);
+    Cookies.remove(name, { path: "/" });
   },
 
   clear: () => {
     const allCookies = Cookies.get();
     Object.keys(allCookies).forEach((cookieName) => {
-      Cookies.remove(cookieName);
+      Cookies.remove(cookieName, { path: "/" });
     });
   },
 };

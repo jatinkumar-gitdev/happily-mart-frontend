@@ -1,4 +1,6 @@
-const Checkbox = ({
+import { forwardRef } from "react";
+
+const Checkbox = forwardRef(({
   label,
   name,
   checked,
@@ -6,11 +8,12 @@ const Checkbox = ({
   error,
   className = "",
   ...props
-}) => {
+}, ref) => {
   return (
     <div className="w-full">
       <label className="flex items-center">
         <input
+          ref={ref}
           type="checkbox"
           name={name}
           checked={checked}
@@ -27,6 +30,6 @@ const Checkbox = ({
       )}
     </div>
   );
-};
+});
 
 export default Checkbox;

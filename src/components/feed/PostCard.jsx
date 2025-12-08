@@ -1,292 +1,3 @@
-// import { useState } from "react";
-// import { useMutation, useQueryClient } from "@tanstack/react-query";
-// import {
-//   FiHeart,
-//   FiMessageCircle,
-//   FiShare2,
-//   FiMoreVertical,
-//   FiLock,
-//   FiUnlock,
-//   FiStar,
-// } from "react-icons/fi";
-// import { postService } from "../../services/post.service";
-// import { useAuthStore } from "../../store/authStore";
-// import PaymentModal from "../payment/PaymentModal";
-// import CommentsSection from "./CommentsSection";
-
-// const PostCard = ({ post, isBlurred = false, onUnlockClick }) => {
-//   const [showComments, setShowComments] = useState(false);
-//   const [showPaymentModal, setShowPaymentModal] = useState(false);
-//   const { isAuthenticated, user } = useAuthStore();
-//   const queryClient = useQueryClient();
-
-//   const isUnlocked = post.isUnlocked || false;
-//   const isLiked = Array.isArray(post.likes)
-//     ? post.likes.some((like) => {
-//         const likeId =
-//           typeof like === "object" && like !== null ? like.toString() : like;
-//         return likeId === user?._id?.toString();
-//       })
-//     : false;
-//   const isFavorited = Array.isArray(post.favorites)
-//     ? post.favorites.some((fav) => {
-//         const favId =
-//           typeof fav === "object" && fav !== null ? fav.toString() : fav;
-//         return favId === user?._id?.toString();
-//       })
-//     : false;
-
-//   const likeMutation = useMutation({
-//     mutationFn: () => postService.likePost(post._id),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries(["posts"]);
-//     },
-//   });
-
-//   const favoriteMutation = useMutation({
-//     mutationFn: () => postService.favoritePost(post._id),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries(["posts"]);
-//       queryClient.invalidateQueries(["favoritePosts"]);
-//     },
-//   });
-
-//   const shareMutation = useMutation({
-//     mutationFn: () => postService.sharePost(post._id),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries(["posts"]);
-//     },
-//   });
-
-//   const handleUnlock = () => {
-//     if (!isAuthenticated) {
-//       onUnlockClick?.();
-//       return;
-//     }
-//     if (post.unlockPrice > 0 && !isUnlocked) {
-//       setShowPaymentModal(true);
-//     }
-//   };
-
-//   const handleLike = () => {
-//     if (!isAuthenticated) {
-//       onUnlockClick?.();
-//       return;
-//     }
-//     likeMutation.mutate();
-//   };
-
-//   const handleFavorite = () => {
-//     if (!isAuthenticated) {
-//       onUnlockClick?.();
-//       return;
-//     }
-//     favoriteMutation.mutate();
-//   };
-
-//   const handleShare = () => {
-//     if (!isAuthenticated) {
-//       onUnlockClick?.();
-//       return;
-//     }
-//     shareMutation.mutate();
-//     if (navigator.share) {
-//       navigator.share({
-//         title: post.title,
-//         text: post.requirement,
-//         url: window.location.href,
-//       });
-//     }
-//   };
-
-//   const handlePaymentSuccess = () => {
-//     queryClient.invalidateQueries(["posts"]);
-//     setShowPaymentModal(false);
-//   };
-
-//   return (
-//     <>
-//       <div
-//         className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 ${
-//           isBlurred && !isUnlocked ? "post-blurred" : ""
-//         }`}
-//       >
-//         {/* Header */}
-//         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-//           <div className="">
-//             <div className="flex justify-between items-center">
-//               <h3 className="font-semibold text-gray-800 dark:text-white text-lg">
-//                 {post.title}
-//               </h3>
-//               <div className="flex items-center gap-2 mt-1 rounded-full py-2 px-6 bg-gradient-to-r from-[--primary] via-sky-700 to-[--button-bg] dark:bg-gray-700 w-max">
-//                 <div className="text-white text-center flex items-center gap-2">
-//                   <div className="font-semibold tracking-wide">Owner</div>-
-//                 </div>
-//                 <p className="text-sm text-white font-semibold tracking-wide dark:text-gray-400">
-//                   {post.author?.name || "Anonymous"}
-//                 </p>
-//                 <div className="flex items-center gap-2">
-//                   {post.author?.companyName && (
-//                     <>
-//                       <span className="text-white">|</span>
-//                       <p className="text-sm text-white font-semibold tracking-wdie dark:text-gray-400">
-//                         {post.author.companyName}
-//                       </p>
-//                     </>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-//             {/* <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-//               <FiMoreVertical className="text-xl" />
-//             </button> */}
-//           </div>
-//         </div>
-
-//         {/* Content */}
-//         <div className="p-4">
-//           <div className="mb-3">
-//             <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">
-//               Requirement:
-//             </h4>
-//             <p className="text-gray-600 dark:text-gray-400">
-//               {post.requirement}
-//             </p>
-//           </div>
-
-//           <div className="mb-4">
-//             <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">
-//               Description:
-//             </h4>
-//             <p className="text-gray-600 dark:text-gray-400">
-//               {isUnlocked
-//                 ? post.description
-//                 : post.description?.substring(0, 100) + "..."}
-//             </p>
-//           </div>
-
-//           {/* Unlock Section */}
-//           {!isUnlocked && post.unlockPrice > 0 && (
-//             <div className="mb-4 p-4 bg-sky-50 dark:bg-sky-900/20 rounded-lg border border-sky-200 dark:border-sky-800">
-//               <div className="flex items-center justify-between">
-//                 <div className="flex items-center gap-2">
-//                   <FiLock className="text-sky-600 dark:text-sky-400" />
-//                   <span className="text-sm text-gray-700 dark:text-gray-300">
-//                     Unlock to view full details and contact information
-//                   </span>
-//                 </div>
-//                 <button
-//                   onClick={handleUnlock}
-//                   className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-full font-semibold text-sm transition-colors flex items-center gap-2"
-//                 >
-//                   <FiUnlock />
-//                   Unlock (₹{post.unlockPrice})
-//                 </button>
-//               </div>
-//             </div>
-//           )}
-
-//           {/* Contact Details (if unlocked) */}
-//           {isUnlocked && post.author && (
-//             <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-//               <h4 className="font-medium text-green-800 dark:text-green-400 mb-2">
-//                 Contact Details:
-//               </h4>
-//               <div className="space-y-1 text-sm">
-//                 <p className="text-gray-700 dark:text-gray-300">
-//                   <span className="font-medium">Email:</span>{" "}
-//                   {post.author.email}
-//                 </p>
-//                 {post.author.phone && (
-//                   <p className="text-gray-700 dark:text-gray-300">
-//                     <span className="font-medium">Phone:</span>{" "}
-//                     {post.author.phone}
-//                   </p>
-//                 )}
-//                 {post.author.companyName && (
-//                   <p className="text-gray-700 dark:text-gray-300">
-//                     <span className="font-medium">Company:</span>{" "}
-//                     {post.author.companyName}
-//                   </p>
-//                 )}
-//               </div>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Engagement */}
-//         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-//           <div className="flex items-center gap-6">
-//             <button
-//               onClick={handleLike}
-//               className={`flex items-center gap-2 transition-colors ${
-//                 isLiked
-//                   ? "text-red-500"
-//                   : "text-gray-600 dark:text-gray-400 hover:text-red-500"
-//               }`}
-//             >
-//               <FiHeart className={`text-xl ${isLiked ? "fill-current" : ""}`} />
-//               <span className="text-sm font-medium">
-//                 {post.likes?.length || 0}
-//               </span>
-//             </button>
-//             {/* <button
-//               onClick={() => setShowComments(!showComments)}
-//               className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-sky-500 transition-colors"
-//             >
-//               <FiMessageCircle className="text-xl" />
-//               <span className="text-sm font-medium">
-//                 {Array.isArray(post.comments) ? post.comments.length : 0}
-//               </span>
-//             </button> */}
-//             <button
-//               onClick={handleFavorite}
-//               className={`flex items-center gap-2 transition-colors ${
-//                 isFavorited
-//                   ? "text-yellow-500"
-//                   : "text-gray-600 dark:text-gray-400 hover:text-yellow-500"
-//               }`}
-//             >
-//               <FiStar
-//                 className={`text-xl ${isFavorited ? "fill-current" : ""}`}
-//               />
-//               <span className="text-sm font-medium">
-//                 {post.favorites?.length || 0}
-//               </span>
-//             </button>
-//             <button
-//               onClick={handleShare}
-//               className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-sky-500 transition-colors"
-//             >
-//               <FiShare2 className="text-xl" />
-//               <span className="text-sm font-medium">{post.shares || 0}</span>
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Comments Section */}
-//         {showComments && (
-//           <CommentsSection
-//             postId={post._id}
-//             isAuthenticated={isAuthenticated}
-//           />
-//         )}
-//       </div>
-
-//       {showPaymentModal && (
-//         <PaymentModal
-//           isOpen={showPaymentModal}
-//           onClose={() => setShowPaymentModal(false)}
-//           post={post}
-//           onSuccess={handlePaymentSuccess}
-//         />
-//       )}
-//     </>
-//   );
-// };
-
-// export default PostCard;
-
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -298,18 +9,23 @@ import {
   FiStar,
   FiChevronRight,
 } from "react-icons/fi";
-import { FaOpencart } from "react-icons/fa6";
+
+import { FaOpencart , FaEye} from "react-icons/fa6";
 import { postService } from "../../services/post.service";
 import { subscriptionService } from "../../services/subscription.service";
 import { useAuthStore } from "../../store/authStore";
 import PaymentModal from "../payment/PaymentModal";
 import CommentsSection from "./CommentsSection";
+import ImageGalleryModal from "../ui/ImageGalleryModal";
 import { showError, showSuccess, showInfo } from "../../utils/toast";
+import { formatRelativeTime, formatDetailedDate } from "../../utils/timeUtils";
+import DealStatusTag from "../deal/DealStatusTag";
 
-const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
+const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMode = "list" }) => {
   const [showComments, setShowComments] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [post, setPost] = useState(initialPost);
   const { isAuthenticated, user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
@@ -349,7 +65,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
       // Snapshot the previous value
       const previousPosts = queryClient.getQueryData(["posts"]);
       
-      // Optimistically update the UI
+
       setPost(prevPost => ({
         ...prevPost,
         likes: isLiked 
@@ -357,7 +73,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
           : [...(prevPost.likes || []), user._id],
       }));
       
-      // Return context with the previous value
+      
       return { previousPosts };
     },
     onSuccess: (data) => {
@@ -434,22 +150,29 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
       onUnlockClick?.();
       return;
     }
+    
+    // For own posts, they should always be unlocked on the backend
+    // This is just a safeguard check
     if (isOwnPost) {
       showInfo(
         "You created this requirement, so all details are already visible."
       );
       return;
     }
+    
     if (authorUnavailable) {
       showError("This post's owner is no longer available.");
       return;
     }
+    
+    // For other users' posts, proceed with unlock process
     if (post.creditCost > 0 && !isUnlocked) {
-      // Check if user has subscription first
       try {
+        // Check user's subscription status and credits
         const subscriptionData = await subscriptionService.getMySubscription();
         const unlockCredits = subscriptionData?.subscription?.unlockCredits || 0;
         
+        // Check if user has enough credits
         if (unlockCredits < post.creditCost) {
           showError(
             `Insufficient unlock credits! You have ${unlockCredits} credit${unlockCredits !== 1 ? 's' : ''}, but need ${post.creditCost} credit${post.creditCost !== 1 ? 's' : ''}.`
@@ -458,7 +181,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
           return;
         }
         
-        // User has enough credits, proceed with unlock
+        // Proceed with unlock
         const response = await postService.unlockPost(post._id);
         showSuccess(response.message || "Post unlocked successfully!");
         
@@ -471,7 +194,16 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
         }
         
         // Update the post with unlocked data
-        setPost({ ...post, ...response.post, isUnlocked: true });
+        // Make sure we're setting all the necessary properties
+        setPost({ 
+          ...post, 
+          ...response.post, 
+          isUnlocked: true,
+          // Ensure isOwnPost remains consistent
+          isOwnPost: post.isOwnPost
+        });
+        
+        // Invalidate relevant queries to update UI
         queryClient.invalidateQueries(["posts"]);
         queryClient.invalidateQueries(["mySubscription"]);
         queryClient.invalidateQueries(["profile"]);
@@ -479,14 +211,29 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
         const errorMessage =
           error.response?.data?.message || "Failed to unlock post";
         showError(errorMessage);
+        
+        // Provide helpful guidance for common error cases
         if (
           errorMessage.includes("credit") ||
-          errorMessage.includes("subscription")
+          errorMessage.includes("subscription") ||
+          errorMessage.includes("expired")
         ) {
-          showInfo("Visit the Subscription page to get more credits!");
+          showInfo("Visit the Subscription page to get more credits or renew your subscription!");
+        } else if (errorMessage.includes("own post")) {
+          showInfo("You cannot unlock your own post as it's already unlocked for you.");
         }
       }
     }
+  };
+
+  const mapPostStatusToTag = (postStatus) => {
+    const statusMap = {
+      Available: "Contacted",
+      "In Progress": "Ongoing",
+      Completed: "Success",
+      Cancelled: "Closed",
+    };
+    return statusMap[postStatus] || "Contacted";
   };
 
   const handleLike = () => {
@@ -527,8 +274,13 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
       setPost((prev) => ({ ...prev, isUnlocked: true }));
     }
     showSuccess("Post unlocked! Contact details are now visible.");
+    
+    // Invalidate relevant queries to update UI across the app
     queryClient.invalidateQueries({ queryKey: ["posts"] });
     queryClient.invalidateQueries({ queryKey: ["paymentHistory"] });
+    queryClient.invalidateQueries({ queryKey: ["mySubscription"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    
     setShowPaymentModal(false);
   };
 
@@ -539,9 +291,9 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 transition-all duration-300 ${
+        className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 transition-all duration-300 flex flex-col h-full ${
           isBlurred && !isUnlocked ? "post-blurred" : ""
-        }`}
+        } ${viewMode === "grid" ? "h-full" : ""}`}
       >
         {/* Animated Background Illustration */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-5 dark:opacity-10">
@@ -628,14 +380,21 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="flex flex-row justify-between items-center gap-3">
-            <motion.h3
-              className="font-bold text-gray-800 dark:text-white text-base sm:text-xl"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 400 }}
-            >
-              {post.title}
-            </motion.h3>
+          <div className={`flex flex-row justify-between items-center gap-3 ${viewMode === "grid" ? "flex-col items-start" : ""}`}>
+            <div>
+              <motion.h3
+                className={`font-bold text-gray-800 dark:text-white ${viewMode === "grid" ? "text-base" : "text-base sm:text-xl"}`}
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                {post.title}
+              </motion.h3>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span title={formatDetailedDate(post.createdAt)}>
+                  {formatRelativeTime(post.createdAt)}
+                </span>
+              </div>
+            </div>
             <motion.div className="flex items-center gap-2 rounded-full py-2  bg-gradient-to-r from-sky-600 via-sky-700 to-[--button-bg]">
               <div className="text-white text-center flex items-center gap-2 text-sm"></div>
 
@@ -645,7 +404,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                   alt={post.author?.name || "Author avatar"}
                   className="w-8 h-8 object-contain"
                 />
-                <p className="text-base text-white pr-4 font-semibold tracking-wide truncate">
+                <p className={`text-base text-white font-semibold tracking-wide truncate ${viewMode === "grid" ? "max-w-[100px]" : "pr-4"}`}>
                   {authorUnavailable ? "Unavailable Author" : post.author?.name}
                 </p>
               </div>
@@ -653,37 +412,83 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
           </div>
         </motion.div>
 
-        {/* Content */}
-        <div className="relative p-4">
-          <motion.div
-            className="mb-4 flex lg:items-center flex-col lg:flex-row  lg:gap-2"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <h4 className="font-semibold tracking-wide text-gray-700 dark:text-gray-300 text-lg">
-              Requirement:
-            </h4>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {post.requirement}
-            </p>
-          </motion.div>
+        {/* Deal Status Tag */}
+        {post.dealStatus && post.dealStatus !== "Available" && (
+          <div className="absolute top-4 right-4 z-20">
+            <DealStatusTag 
+              status={mapPostStatusToTag(post.dealStatus)} 
+              size="sm"
+              className="shadow-md"
+            />
+          </div>
+        )}
 
-          <motion.div
-            className="mb-4"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h4 className="font-semibold tracking-wide text-gray-700 dark:text-gray-300 text-lg">
-              Description:
-            </h4>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              {isUnlocked
-                ? post.description
-                : post.description?.substring(0, 100) + "..."}
-            </p>
-          </motion.div>
+        {/* Content */}
+        <div className="relative p-4 flex-grow" style={{ minHeight: '1px' }}>
+          {/* Image and Content Layout */}
+          <div className={`flex ${viewMode === "grid" ? "flex-col" : "flex-col md:flex-row"} gap-4 lg:gap-6 mb-4`}>
+            {/* Main image on the left */}
+            {post.images && post.images.length > 0 && (
+              <div className={`${viewMode === "grid" ? "w-full" : "md:w-[30%]"} flex-shrink-0 relative group cursor-pointer`} onClick={() => setIsImageModalOpen(true)}>
+                <div className={`${viewMode === "grid" ? "h-48" : "lg:h-56 h-full"} rounded-xl overflow-hidden relative`}>
+                  <img
+                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'}${post.images[0]}`}
+                    alt={`Main post image`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.png';
+                    }}
+                  />
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl">
+                      <FaEye className="text-2xl text-black/80" />
+                      <span className="text-black/80 font-semibold text-sm">Preview</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Content on the right */}
+            <div className={viewMode === "grid" ? "w-full" : "md:w-[70%]"}>
+              <motion.div
+                className="mb-4 flex lg:items-center flex-col lg:flex-row lg:gap-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <h4 className="font-semibold tracking-wide text-gray-700 dark:text-gray-300 text-lg">
+                  Requirement:
+                </h4>
+                <p className={`text-gray-600 dark:text-gray-400 ${viewMode === "grid" ? "text-sm line-clamp-2" : "text-base"}`}>
+                  {post.requirement}
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="mb-4"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <h4 className="font-semibold tracking-wide text-gray-700 dark:text-gray-300 text-lg">
+                  Description:
+                </h4>
+                <div className={`text-gray-600 dark:text-gray-400 ${viewMode === "grid" ? "text-sm" : "text-base"}`}>
+                  {isUnlocked ? (
+                    <div className="whitespace-pre-line">
+                      {post.description}
+                    </div>
+                  ) : (
+                    <p>
+                      {post.description?.substring(0, viewMode === "grid" ? 80 : 100) + "..."}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </div>
 
           {/* Unlock Section - Only show for OTHER users' posts that are not unlocked */}
           {!isOwnPost && !isUnlocked && !authorUnavailable && post.creditCost > 0 && (
@@ -693,7 +498,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className={`flex flex-col ${viewMode === "grid" ? "sm:flex-col gap-3" : "sm:flex-row"} items-start sm:items-center justify-between gap-3`}>
                 <div className="flex items-center gap-2">
                   <motion.div
                     animate={{ rotate: [0, -10, 10, -10, 0] }}
@@ -705,7 +510,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                   >
                     <FiLock className="text-sky-600 dark:text-sky-400 text-xl" />
                   </motion.div>
-                  <span className="text-base tracking-wide text-gray-700 dark:text-gray-300">
+                  <span className={`tracking-wide text-gray-700 dark:text-gray-300 ${viewMode === "grid" ? "text-sm" : "text-base"}`}>
                     Unlock to view full details and contact information
                   </span>
                 </div>
@@ -717,7 +522,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                     authorUnavailable || isOwnPost
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : "bg-gradient-to-r from-sky-500 to-[--button-bg] hover:from-sky-600 hover:to-indigo-700 text-white"
-                  }`}
+                  } ${viewMode === "grid" ? "w-full" : ""}`}
                   whileTap={{
                     scale: authorUnavailable || isOwnPost ? 1 : 0.95,
                   }}
@@ -740,7 +545,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                   </motion.div>
 
                   <motion.div
-                    className="hidden sm:flex absolute inset-0 items-center justify-center gap-1"
+                    className={`hidden sm:flex absolute inset-0 items-center justify-center gap-1 ${viewMode === "grid" ? "hidden" : ""}`}
                     initial={{ opacity: 0 }}
                     animate={isHovering ? { opacity: 1 } : { opacity: 0 }}
                     transition={{ duration: 0.2 }}
@@ -773,6 +578,16 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
             </motion.div>
           )}
 
+          {/* Already Unlocked Message - Show for unlocked posts that aren't owned by the user */}
+          {isUnlocked && !isOwnPost && (
+            <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-300">
+              <div className="flex items-center gap-2">
+                <FiUnlock className="text-emerald-600 dark:text-emerald-400" />
+                <span>You've unlocked this post. Contact details are now visible.</span>
+              </div>
+            </div>
+          )}
+
           {authorUnavailable && (
             <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
               This post's owner is no longer available. Unlocking has been
@@ -786,7 +601,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
             </div>
           )}
 
-          <AnimatePresence>
+         <AnimatePresence>
             {isUnlocked && !isOwnPost && !authorUnavailable && post.author && (
               <motion.div
                 className="mb-4 p-4 sm:p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border-2 border-green-200 dark:border-green-800"
@@ -845,12 +660,12 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
 
         {/* Engagement */}
         <motion.div
-          className="relative p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between"
+          className="relative p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between mt-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+          <div className={`flex items-center gap-4 sm:gap-6 flex-wrap ${viewMode === "grid" ? "gap-2" : ""}`}>
             <motion.button
               onClick={handleLike}
               className={`flex items-center gap-2 transition-colors ${
@@ -869,7 +684,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                   className={`text-xl ${isLiked ? "fill-current" : ""}`}
                 />
               </motion.div>
-              <span className="text-sm font-medium">
+              <span className={`text-sm font-medium ${viewMode === "grid" ? "text-xs" : ""}`}>
                 {post.likes?.length || 0}
               </span>
             </motion.button>
@@ -892,7 +707,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
                   className={`text-xl ${isFavorited ? "fill-current" : ""}`}
                 />
               </motion.div>
-              <span className="text-sm font-medium">
+              <span className={`text-sm font-medium ${viewMode === "grid" ? "text-xs" : ""}`}>
                 {post.favorites?.length || 0}
               </span>
             </motion.button>
@@ -904,7 +719,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
               whileTap={{ scale: 0.9, rotate: -15 }}
             >
               <FiShare2 className="text-xl" />
-              <span className="text-sm font-medium">{post.shares || 0}</span>
+              <span className={`text-sm font-medium ${viewMode === "grid" ? "text-xs" : ""}`}>{post.shares || 0}</span>
             </motion.button>
           </div>
         </motion.div>
@@ -935,6 +750,15 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick }) => {
           onSuccess={handlePaymentSuccess}
         />
       )}
+      
+      <ImageGalleryModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        post={post}
+        isUnlocked={isUnlocked}
+        authorUnavailable={authorUnavailable}
+        onUnlock={handleUnlock}
+      />
     </>
   );
 };

@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import AppRoutes from "./routes/AppRoutes";
 import { useThemeStore } from "./store/themeStore";
 import { useAuthStore } from "./store/authStore";
+import { useAdminStore } from "./store/adminStore";
 import { authService } from "./services/auth.service";
 import { cookieManager } from "./utils/cookieManager";
 
@@ -21,6 +22,7 @@ function App() {
   const { theme } = useThemeStore();
   const location = useLocation();
   const { setUser, logout } = useAuthStore();
+  const { initializeAuth: initializeAdminAuth } = useAdminStore();
 
   const isAuthPage =
     location.pathname === "/login" ||
@@ -29,6 +31,13 @@ function App() {
     location.pathname === "/reset-password";
 
   useEffect(() => {
+    // Initialize admin auth state only once
+    const isAdminRoute = location.pathname.startsWith("/admin");
+    if (isAdminRoute) {
+      initializeAdminAuth();
+    }
+    
+    // Initialize user auth state
     const token = cookieManager.get("accessToken");
     if (token) {
       authService
@@ -45,7 +54,9 @@ function App() {
           logout();
         });
     }
+  }, []); // Empty dependency array to run only once
 
+  useEffect(() => {
     const root = document.documentElement;
 
     if (isAuthPage) {
@@ -57,7 +68,7 @@ function App() {
         root.classList.remove("dark");
       }
     }
-  }, [theme, isAuthPage, location.pathname]);
+  }, [theme, isAuthPage]);
 
   return (
     <QueryClientProvider client={queryClient}>

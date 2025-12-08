@@ -1,0 +1,1 @@
+export { default as UsersManagementPage } from './pages/UsersManagement';
