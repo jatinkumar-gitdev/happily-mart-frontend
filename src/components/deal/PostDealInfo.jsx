@@ -1,6 +1,5 @@
 import React from "react";
 import { FiCalendar, FiRefreshCw, FiCheckCircle, FiXCircle } from "react-icons/fi";
-import DealStatusTag from "./DealStatusTag";
 import DealProgressIndicator from "./DealProgressIndicator";
 
 const PostDealInfo = ({ 
@@ -33,7 +32,6 @@ const PostDealInfo = ({
   if (compact) {
     return (
       <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-        <DealStatusTag status={deal.status} size="xs" />
         <span className="text-xs text-gray-500">
           {daysSinceUnlocked}d ago
         </span>
@@ -44,7 +42,6 @@ const PostDealInfo = ({
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <DealStatusTag status={deal.status} size="sm" />
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <FiCalendar className="w-4 h-4" />
           <span>{daysSinceUnlocked} days since unlocked</span>

@@ -134,16 +134,6 @@ export const postService = {
     }
   },
 
-  getValidityOptions: async (id) => {
-    try {
-      const response = await axiosInstance.get(API_ENDPOINTS.POSTS.GET_VALIDITY_OPTIONS(id));
-      return response.data;
-    } catch (error) {
-      showError(error.response?.data?.message || "Failed to fetch validity options");
-      throw error;
-    }
-  },
-
   // Add new method for incrementing view count
   incrementViewCount: async (id) => {
     try {
@@ -163,17 +153,6 @@ export const postService = {
       return response.data;
     } catch (error) {
       showError(error.response?.data?.message || "Failed to edit post");
-      throw error;
-    }
-  },
-
-  // Add new method for deleting a post
-  deletePost: async (id, data = {}) => {
-    try {
-      const response = await axiosInstance.delete(API_ENDPOINTS.POSTS.EDIT(id), { data });
-      return response.data;
-    } catch (error) {
-      showError(error.response?.data?.message || "Failed to delete post");
       throw error;
     }
   },

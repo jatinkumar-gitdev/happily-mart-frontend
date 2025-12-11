@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiUsers, FiFileText, FiTrendingUp, FiRefreshCw, FiActivity, FiDollarSign, FiAlertTriangle } from 'react-icons/fi';
 import adminAxios from '../../core/utils/adminAxios';
-import DealStatusTag from '../../../../components/deal/DealStatusTag';
 
 const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -356,9 +355,7 @@ const Dashboard = () => {
                       {formatTimeAgo(item.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {item.type === 'deal' && item.status && (
-                        <DealStatusTag status={item.status} size="xs" />
-                      )}
+                    
                       {item.type === 'post' && (
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -398,7 +395,7 @@ const Dashboard = () => {
                   <h3 className="font-medium text-gray-900 truncate flex-1">
                     {deal.post?.title || 'Unknown Post'}
                   </h3>
-                  <DealStatusTag status={deal.status} size="xs" />
+               
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
                   <div>Unlocker: {deal.unlocker?.name || 'N/A'}</div>

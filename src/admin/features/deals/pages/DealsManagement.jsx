@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import adminAxios from "../../core/utils/adminAxios";
-import DealStatusTag from "../../../../components/deal/DealStatusTag";
 import { showSuccess, showError } from "../../../../utils/toast";
 import {
   FiUser,
@@ -241,9 +240,7 @@ const DealsManagement = () => {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Author
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
+                  
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Age
                     </th>
@@ -303,9 +300,7 @@ const DealsManagement = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <DealStatusTag status={deal.status} size="sm" />
-                      </td>
+                     
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600">
                           {getDaysSince(deal.createdAt)}d ago
@@ -411,7 +406,7 @@ const DealsManagement = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-2">Current Status</p>
-                    <DealStatusTag status={selectedDeal.status} size="lg" />
+                  
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600 mb-2">Deal Age</p>
@@ -612,7 +607,7 @@ const DealsManagement = () => {
                         key={index}
                         className="flex items-center gap-4 pb-3 border-b border-gray-100 last:border-b-0"
                       >
-                        <DealStatusTag status={history.status} size="sm" />
+                
                         <div className="flex-1">
                           <p className="text-sm text-gray-900 font-medium">
                             {history.notes || "Status update"}
@@ -676,7 +671,7 @@ const DealsManagement = () => {
                 <p className="text-xs text-gray-600 uppercase font-semibold mb-2">
                   Current Status
                 </p>
-                <DealStatusTag status={selectedDeal.status} size="md" />
+               
               </div>
 
               <div className="mb-4">

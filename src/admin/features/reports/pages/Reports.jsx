@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiFlag, FiAlertTriangle, FiUsers, FiActivity, FiRefreshCw, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import adminAxios from '../../core/utils/adminAxios';
-import DealStatusTag from '../../../../components/deal/DealStatusTag';
 
 const Reports = () => {
   const [loading, setLoading] = useState(true);
@@ -181,7 +180,6 @@ const Reports = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Count</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Percentage</th>
                   </tr>
@@ -189,9 +187,6 @@ const Reports = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {analytics?.statusCounts?.map((item, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <DealStatusTag status={item._id} size="sm" />
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap font-medium">
                         {item.count}
                       </td>
@@ -240,7 +235,7 @@ const Reports = () => {
                       {item.deals.slice(0, 3).map((deal, dealIndex) => (
                         <div key={dealIndex} className="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
                           <span className="text-gray-600">{deal.post?.title || 'Unknown Post'}</span>
-                          <DealStatusTag status={deal.status} size="xs" />
+                      
                         </div>
                       ))}
                       {item.deals.length > 3 && (
