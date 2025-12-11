@@ -10,6 +10,7 @@ import Input from "../components/common/Input";
 import PasswordInput from "../components/common/PasswordInput";
 import Button from "../components/common/Button";
 import AvatarSelector from "../components/profile/AvatarSelector";
+import WorkspaceHistory from "../components/profile/WorkspaceHistory";
 import { getAvatarUrl } from "../utils/avatarUtils";
 import { showSuccess, showError, showInfo } from "../utils/toast";
 import {
@@ -30,6 +31,7 @@ import {
   FiAlertTriangle,
   FiCheckCircle,
   FiCalendar,
+  FiPackage
 } from "react-icons/fi";
 
 const Profile = () => {
@@ -446,6 +448,19 @@ const Profile = () => {
               <div className="flex items-center gap-2">
                 <FiShoppingBag />
                 Purchase History
+              </div>
+            </button>
+            <button
+              onClick={() => setSearchParams({ tab: "workspace" })}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === "workspace"
+                  ? "border-b-2 border-sky-500 text-sky-600 dark:text-sky-400"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FiPackage />
+                Workspace
               </div>
             </button>
           </div>
@@ -1448,6 +1463,13 @@ const Profile = () => {
             </div>
           )}
         </div>
+        
+        {activeTab === "workspace" && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <WorkspaceHistory user={user} />
+          </div>
+        )}
+        
         <AvatarSelector
           isOpen={showAvatarModal}
           onClose={() => setShowAvatarModal(false)}

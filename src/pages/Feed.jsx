@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/layout/MainLayout";
 import CreatePostModal from "../components/feed/CreatePostModal";
@@ -7,6 +7,7 @@ import PostCard from "../components/feed/PostCard";
 import TrendingSection from "../components/feed/TrendingSection";
 import { postService } from "../services/post.service";
 import { useAuthStore } from "../store/authStore";
+import useSocket from "../hooks/useSocket";
 import {
   FiTrendingUp,
   FiClock,
@@ -33,6 +34,8 @@ const LoadingState = ({ message = "Loading posts..." }) => (
 const Feed = () => {
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { on, off } = useSocket();
   const [filter, setFilter] = useState("trending");
   const [viewMode, setViewMode] = useState("list");
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -43,8 +46,6 @@ const Feed = () => {
   const [dateFilter, setDateFilter] = useState("all"); // all, today, yesterday, recent
   const loadMoreRef = useRef(null);
 
-  const [showNewPostLoading, setShowNewPostLoading] = useState(false);
-  
   const {
     data: infinitePosts,
     isLoading: isPostsLoading,
@@ -63,33 +64,6 @@ const Feed = () => {
     },
     enabled: isAuthenticated,
   });
-  
-  // Handle post creation event
-  useEffect(() => {
-    // Store refetch function in a ref so we can access it in the global handler
-    if (refetchPosts) {
-      window.feedRefetchPosts = refetchPosts;
-    }
-    
-    const handlePostCreated = () => {
-      setShowNewPostLoading(true);
-      // Simulate 3-second loading
-      setTimeout(() => {
-        setShowNewPostLoading(false);
-        // Refetch posts after the delay
-        if (window.feedRefetchPosts) {
-          window.feedRefetchPosts();
-        }
-      }, 3000);
-    };
-    
-    window.onPostCreated = handlePostCreated;
-    
-    return () => {
-      window.onPostCreated = null;
-      window.feedRefetchPosts = null;
-    };
-  }, [refetchPosts]);
 
   const { data: publicPostsData, isLoading: isPublicLoading } = useQuery({
     queryKey: ["publicPosts"],
@@ -97,6 +71,39 @@ const Feed = () => {
     enabled: !isAuthenticated,
 
   });
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handlePostCreated = () => {
+      // Clear all cached data for posts to force a full refresh
+      queryClient.setQueryData(["posts", isAuthenticated], undefined);
+      // Trigger immediate refetch
+      setTimeout(() => refetchPosts(), 50);
+    };
+
+    const handlePostEdited = () => {
+      // Clear and refetch
+      queryClient.setQueryData(["posts", isAuthenticated], undefined);
+      setTimeout(() => refetchPosts(), 50);
+    };
+
+    const handlePostDeleted = () => {
+      // Clear and refetch
+      queryClient.setQueryData(["posts", isAuthenticated], undefined);
+      setTimeout(() => refetchPosts(), 50);
+    };
+
+    on("post:created", handlePostCreated);
+    on("post:edited", handlePostEdited);
+    on("post:deleted", handlePostDeleted);
+
+    return () => {
+      off("post:created", handlePostCreated);
+      off("post:edited", handlePostEdited);
+      off("post:deleted", handlePostDeleted);
+    };
+  }, [isAuthenticated, on, off, queryClient, refetchPosts]);
 
   const handleUnlockClick = () => {
     navigate("/signup");
@@ -417,8 +424,8 @@ const Feed = () => {
             {/* All Posts for Logged In Users */}
             {isAuthenticated && (
               <div>
-                {isPostsLoading || showNewPostLoading ? (
-                  <LoadingState message={showNewPostLoading ? "New post is being processed..." : "Loading Requirements..."} />
+                {isPostsLoading ? (
+                  <LoadingState message="Loading Requirements..." />
                 ) : displayPosts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">

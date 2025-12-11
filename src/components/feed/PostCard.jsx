@@ -6,20 +6,26 @@ import {
   FiShare2,
   FiLock,
   FiUnlock,
-  FiStar,
   FiChevronRight,
+  FiAward,
+  FiUser,
+  FiEdit,
+  FiTrash2,
 } from "react-icons/fi";
-
+import { TbRefreshAlert } from "react-icons/tb";
 import { FaOpencart , FaEye} from "react-icons/fa6";
 import { postService } from "../../services/post.service";
 import { subscriptionService } from "../../services/subscription.service";
 import { useAuthStore } from "../../store/authStore";
+import useSocket from "../../hooks/useSocket";
 import PaymentModal from "../payment/PaymentModal";
 import CommentsSection from "./CommentsSection";
 import ImageGalleryModal from "../ui/ImageGalleryModal";
 import { showError, showSuccess, showInfo } from "../../utils/toast";
-import { formatRelativeTime, formatDetailedDate } from "../../utils/timeUtils";
-import DealStatusTag from "../deal/DealStatusTag";
+import EditPostModal from "./EditPostModal";
+import PostValidityManager from "../deal/PostValidityManager";
+import DeleteConfirmationModal from "../modals/DeleteConfirmationModal";
+import { formatDetailedDate, formatRelativeTime } from "../../utils/timeUtils";
 
 const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMode = "list" }) => {
   const [showComments, setShowComments] = useState(false);
@@ -27,19 +33,15 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
   const [isHovering, setIsHovering] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [post, setPost] = useState(initialPost);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { isAuthenticated, user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    setPost(initialPost);
-  }, [initialPost]);
-
-  if (!post) {
-    return null;
-  }
+  const { on, off } = useSocket();
 
   const isUnlocked = post.isUnlocked || false;
   const isOwnPost = post.isOwnPost || false;
+  const isExpired = post.postStatus === "Expired" || post.isExpired || new Date() > new Date(post.expiresAt);
   const authorUnavailable = !post.author;
   const isLiked = Array.isArray(post.likes)
     ? post.likes.some((like) => {
@@ -56,15 +58,144 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
       })
     : false;
 
+  const unlockedDetailCount = post.unlockedDetailCount || 0;
+  const contactCount = post.contactCount || 0;
+  const badgeLevel = post.badgeLevel || 0;
+
+  useEffect(() => {
+    setPost(initialPost);
+  }, [initialPost]);
+
+  // Socket listeners for real-time updates
+  useEffect(() => {
+    const handleUnlockedDetailCountUpdate = (data) => {
+      if (data.postId === initialPost._id && isOwnPost) {
+        setPost((prev) => ({
+          ...prev,
+          unlockedDetailCount: data.unlockedDetailCount,
+        }));
+      }
+    };
+
+    const handleContactCountUpdate = (data) => {
+      if (data.postId === initialPost._id && isOwnPost) {
+        setPost((prev) => ({
+          ...prev,
+          contactCount: data.contactCount,
+          badgeLevel: data.badgeLevel || prev.badgeLevel,
+        }));
+        showSuccess(`New prospect unlocked your post! Total: ${data.contactCount}`);
+      }
+    };
+
+    const handleDealStatusChanged = (data) => {
+      if (data.postId === initialPost._id) {
+        setPost((prev) => ({
+          ...prev,
+          dealToggleStatus: data.dealToggleStatus,
+          dealResult: data.dealResult,
+          postStatus: data.postStatus,
+          isActive: data.isActive,
+        }));
+        if (!isOwnPost) {
+          showInfo("A post you viewed has been updated");
+        }
+      }
+    };
+
+    const handleValidityUpdated = (data) => {
+      if (data.postId === initialPost._id) {
+        setPost((prev) => ({
+          ...prev,
+          validityPeriod: data.validityPeriod,
+          expiresAt: data.expiresAt,
+          postStatus: data.postStatus,
+          isActive: data.isActive,
+          dealResult: data.dealResult,
+        }));
+      }
+    };
+
+    const handlePostEdited = (data) => {
+      if (data.postId === initialPost._id) {
+        setPost((prev) => ({
+          ...prev,
+          title: data.title,
+          requirement: data.requirement,
+          description: data.description,
+          category: data.category,
+          subcategory: data.subcategory,
+          creditCost: data.creditCost,
+        }));
+        if (isOwnPost) {
+          showSuccess("Your post has been updated");
+        }
+      }
+    };
+
+    const handlePostDeleted = (data) => {
+      if (data.postId === initialPost._id) {
+        setPost((prev) => ({
+          ...prev,
+          isActive: false,
+          postStatus: "Provisional",
+        }));
+        if (!isOwnPost) {
+          showInfo("A post you viewed has been deleted");
+        }
+      }
+    };
+
+    on("post:unlockedDetailCountUpdated", handleUnlockedDetailCountUpdate);
+    on("post:contactCountUpdated", handleContactCountUpdate);
+    on("post:dealStatusChanged", handleDealStatusChanged);
+    on("post:validityUpdated", handleValidityUpdated);
+    on("post:edited", handlePostEdited);
+    on("post:deleted", handlePostDeleted);
+
+    return () => {
+      off("post:unlockedDetailCountUpdated", handleUnlockedDetailCountUpdate);
+      off("post:contactCountUpdated", handleContactCountUpdate);
+      off("post:dealStatusChanged", handleDealStatusChanged);
+      off("post:validityUpdated", handleValidityUpdated);
+      off("post:edited", handlePostEdited);
+      off("post:deleted", handlePostDeleted);
+    };
+  }, [initialPost._id, on, off, isOwnPost]);
+
+  // Increment view count when a prospect views an unlocked post
+  useEffect(() => {
+    const incrementViewCount = async () => {
+      // Only increment for prospects (not owners) viewing unlocked posts
+      if (isAuthenticated && !post.isOwnPost && post.isUnlocked && post._id) {
+        try {
+          const response = await postService.incrementViewCount(post._id);
+          if (response.success) {
+            // Update the post with the new view count
+            setPost(prevPost => ({
+              ...prevPost,
+              unlockedDetailCount: response.unlockedDetailCount
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to increment unlocked detail count:", error);
+        }
+      }
+    };
+
+    incrementViewCount();
+  }, [isAuthenticated, post.isOwnPost, post.isUnlocked, post._id]);
+
+  if (!post) {
+    return null;
+  }
+
   const likeMutation = useMutation({
     mutationFn: () => postService.likePost(post._id),
     onMutate: async () => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries(["posts"]);
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
       
-      // Snapshot the previous value
-      const previousPosts = queryClient.getQueryData(["posts"]);
-      
+      const previousPosts = queryClient.getQueryData({ queryKey: ["posts"] });
 
       setPost(prevPost => ({
         ...prevPost,
@@ -73,11 +204,10 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
           : [...(prevPost.likes || []), user._id],
       }));
       
-      
       return { previousPosts };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(["posts"]);
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
       if (data?.isLiked) {
         showSuccess("Post liked successfully!");
       } else {
@@ -85,9 +215,8 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
       }
     },
     onError: (error, variables, context) => {
-      // Rollback on error
       if (context?.previousPosts) {
-        queryClient.setQueryData(["posts"], context.previousPosts);
+        queryClient.setQueryData({ queryKey: ["posts"] }, context.previousPosts);
       }
       setPost(initialPost);
       showError(error.response?.data?.message || "Failed to like post");
@@ -97,14 +226,11 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
   const favoriteMutation = useMutation({
     mutationFn: () => postService.favoritePost(post._id),
     onMutate: async () => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries(["posts"]);
-      await queryClient.cancelQueries(["favoritePosts"]);
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["favoritePosts"] });
       
-      // Snapshot the previous value
-      const previousPosts = queryClient.getQueryData(["posts"]);
+      const previousPosts = queryClient.getQueryData({ queryKey: ["posts"] });
       
-      // Optimistically update the UI
       setPost(prevPost => ({
         ...prevPost,
         favorites: isFavorited 
@@ -112,12 +238,11 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
           : [...(prevPost.favorites || []), user._id],
       }));
       
-      // Return context with the previous value
       return { previousPosts };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(["posts"]);
-      queryClient.invalidateQueries(["favoritePosts"]);
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["favoritePosts"] });
       if (data?.isFavorited) {
         showSuccess("Post added to favorites!");
       } else {
@@ -125,9 +250,8 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
       }
     },
     onError: (error, variables, context) => {
-      // Rollback on error
       if (context?.previousPosts) {
-        queryClient.setQueryData(["posts"], context.previousPosts);
+        queryClient.setQueryData({ queryKey: ["posts"] }, context.previousPosts);
       }
       setPost(initialPost);
       showError(error.response?.data?.message || "Failed to favorite post");
@@ -137,13 +261,30 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
   const shareMutation = useMutation({
     mutationFn: () => postService.sharePost(post._id),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(["posts"]);
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
       showSuccess("Post shared successfully!");
     },
     onError: (error) => {
       showError(error.response?.data?.message || "Failed to share post");
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ reasons } = {}) => postService.deletePost(post._id, { deletionReasons: reasons || [] }),
+    onSuccess: (data) => {
+      showSuccess("Post deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["myPosts"] });
+    },
+    onError: (error) => {
+      showError(error.response?.data?.message || "Failed to delete post");
+    },
+  });
+
+  const handleDelete = async (reasons) => {
+    deleteMutation.mutate({ reasons });
+    setShowDeleteModal(false);
+  };
 
   const handleUnlock = async () => {
     if (!isAuthenticated) {
@@ -162,6 +303,17 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
     
     if (authorUnavailable) {
       showError("This post's owner is no longer available.");
+      return;
+    }
+
+    // Check if post is expired or deal is won/failed
+    if (post.postStatus === "Expired" || post.isExpired) {
+      showError("This post has expired and cannot be unlocked. Contact the creator for revival.");
+      return;
+    }
+
+    if (post.dealResult === "Won" || post.dealResult === "Failed") {
+      showError("This post's deal has been completed and it cannot be unlocked further.");
       return;
     }
     
@@ -284,16 +436,28 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
     setShowPaymentModal(false);
   };
 
+  // Get badge text based on level
+  const getBadgeText = (level) => {
+    switch (level) {
+      case 1: return "10+";
+      case 2: return "20+";
+      case 3: return "50+";
+      case 4: return "100+";
+      case 5: return "150+";
+      default: return "";
+    }
+  };
+
   return (
     <>
       <motion.div
         id={`post-${post._id}`}
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: isExpired ? 0.5 : 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 transition-all duration-300 flex flex-col h-full ${
           isBlurred && !isUnlocked ? "post-blurred" : ""
-        } ${viewMode === "grid" ? "h-full" : ""}`}
+        } ${viewMode === "grid" ? "h-full" : ""} ${isExpired ? "opacity-50 grayscale" : ""}`}
       >
         {/* Animated Background Illustration */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-5 dark:opacity-10">
@@ -380,8 +544,9 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <div className={`flex flex-row justify-between items-center gap-3 ${viewMode === "grid" ? "flex-col items-start" : ""}`}>
-            <div>
+          <div className={`flex flex-row justify-between items-center gap-3 ${viewMode === "grid" ? "flex-row items-start" : ""}`}>
+            <div className={`flex gap-2 ${viewMode === "grid" ? "flex-row items-start" : "flex-col items-start"}`}>
+            <div className="flex gap-2 items-center">
               <motion.h3
                 className={`font-bold text-gray-800 dark:text-white ${viewMode === "grid" ? "text-base" : "text-base sm:text-xl"}`}
                 whileHover={{ scale: 1.02 }}
@@ -389,67 +554,94 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
               >
                 {post.title}
               </motion.h3>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span title={formatDetailedDate(post.createdAt)}>
-                  {formatRelativeTime(post.createdAt)}
-                </span>
+              <div>
+                 {post.dealResult && ['Won', 'Failed'].includes(post.dealResult) && (
+                   <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white shadow-lg ${post.dealResult === 'Won' ? 'bg-gradient-to-r from-[--primary] to-[--button-bg]' : 'bg-gradient-to-r from-red-500 to-red-600'}`}>
+                    <span className="text-lg">{post.dealResult === 'Won' ? '✓' : '✕'}</span>
+                   <span>Deal {post.dealResult}</span>
+                   </div>
+                  )}
+              </div>
+            </div>
+              <div>
+               {isOwnPost && contactCount > 0 && (
+                 <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                 <FaEye className="text-xs" />
+                 <span>{contactCount} are contacted</span>
+             </div>
+                )}
               </div>
             </div>
             <motion.div className="flex items-center gap-2 rounded-full py-2  bg-gradient-to-r from-sky-600 via-sky-700 to-[--button-bg]">
               <div className="text-white text-center flex items-center gap-2 text-sm"></div>
 
-              <div className="flex gap-2  items-center ">
+              <div className="flex gap-2 items-center ">
                 <img
                   src={post.author?.avatar || "/default-avatar.png"}
                   alt={post.author?.name || "Author avatar"}
                   className="w-8 h-8 object-contain"
                 />
-                <p className={`text-base text-white font-semibold tracking-wide truncate ${viewMode === "grid" ? "max-w-[100px]" : "pr-4"}`}>
+               <div> 
+                <p className={`text-base text-white font-semibold tracking-wide truncate ${viewMode === "grid" ? "max-w-[100px]" : "pr-1.5"}`}>
                   {authorUnavailable ? "Unavailable Author" : post.author?.name}
                 </p>
+                <p>  {isOwnPost && (
+                  <div className="flex items-center gap-1 text-xs text-white font-bold">
+                  <span>{post.isCreator ? "Creator" : "Prospect"}</span>
+                 </div>
+                 )}
+                 </p>
+               </div>
+               
+               {/* Edit and Delete buttons for creators */}
+               {isOwnPost && (
+                 <div className="flex gap-1 pr-2">
+                   <button
+                     onClick={() => setShowEditModal(true)}
+                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                     title="Edit post"
+                   >
+                     <FiEdit className="text-white text-sm" />
+                   </button>
+                   <button
+                     onClick={() => setShowDeleteModal(true)}
+                     disabled={deleteMutation.isPending}
+                     className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50"
+                     title="Delete post"
+                   >
+                     <FiTrash2 className="text-white text-sm" />
+                   </button>
+                 </div>
+               )}
               </div>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Deal Status Tag */}
-        {post.dealStatus && post.dealStatus !== "Available" && (
-          <div className="absolute top-4 right-4 z-20">
-            <DealStatusTag 
-              status={mapPostStatusToTag(post.dealStatus)} 
-              size="sm"
-              className="shadow-md"
-            />
+        {/* Unlocked Detail Count Badge - Only visible to post owners */}
+     
+        
+        {/* Badge for creators (moved to avoid overlap) */}
+         {/* {isOwnPost && badgeLevel > 0 && (
+          <div className="absolute top-4 left-32 z-20 flex items-center gap-1 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+            <FiAward className="text-xs" />
+            <span>{getBadgeText(badgeLevel)}</span>
           </div>
-        )}
+        )} */}
+       
+
+        {/* Deal Result Badge - Shows Won/Failed status */}
+        {/* {post.dealResult && ['Won', 'Failed'].includes(post.dealResult) && (
+          <div className={`absolute top-4 right-4 z-20 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-white shadow-lg ${post.dealResult === 'Won' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'}`}>
+            <span className="text-lg">{post.dealResult === 'Won' ? '✓' : '✕'}</span>
+            <span>Deal {post.dealResult}</span>
+          </div>
+        )} */}
 
         {/* Content */}
         <div className="relative p-4 flex-grow" style={{ minHeight: '1px' }}>
           {/* Image and Content Layout */}
           <div className={`flex ${viewMode === "grid" ? "flex-col" : "flex-col md:flex-row"} gap-4 lg:gap-6 mb-4`}>
-            {/* Main image on the left */}
-            {post.images && post.images.length > 0 && (
-              <div className={`${viewMode === "grid" ? "w-full" : "md:w-[30%]"} flex-shrink-0 relative group cursor-pointer`} onClick={() => setIsImageModalOpen(true)}>
-                <div className={`${viewMode === "grid" ? "h-48" : "lg:h-56 h-full"} rounded-xl overflow-hidden relative`}>
-                  <img
-                    src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'}${post.images[0]}`}
-                    alt={`Main post image`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.src = '/placeholder-image.png';
-                    }}
-                  />
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl">
-                      <FaEye className="text-2xl text-black/80" />
-                      <span className="text-black/80 font-semibold text-sm">Preview</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             {/* Content on the right */}
             <div className={viewMode === "grid" ? "w-full" : "md:w-[70%]"}>
               <motion.div
@@ -490,8 +682,8 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
             </div>
           </div>
 
-          {/* Unlock Section - Only show for OTHER users' posts that are not unlocked */}
-          {!isOwnPost && !isUnlocked && !authorUnavailable && post.creditCost > 0 && (
+          {/* Unlock Section - Only show for OTHER users' posts that are not unlocked and not expired/won/failed */}
+          {!isOwnPost && !isUnlocked && !authorUnavailable && post.creditCost > 0 && post.postStatus !== "Expired" && !post.isExpired && post.dealResult !== "Won" && post.dealResult !== "Failed" && (
             <motion.div
               className="mb-4 p-4 sm:p-5 bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-sky-200 dark:border-sky-800"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -595,9 +787,34 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
             </div>
           )}
 
+          {(post.postStatus === "Expired" || post.isExpired) && !isOwnPost && (
+            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300">
+              <div className="flex items-center gap-2">
+                <TbRefreshAlert />
+                <span>This post has expired. The creator can revive it to enable unlocking again.</span>
+              </div>
+            </div>
+          )}
+
+          {(post.dealResult === "Won" || post.dealResult === "Failed") && !isOwnPost && (
+            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300">
+              <div className="flex items-center gap-2">
+                <TbRefreshAlert />
+                <span>This post's deal has been completed. Unlocking is no longer available.</span>
+              </div>
+            </div>
+          )}
+
           {isOwnPost && !authorUnavailable && (
             <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-300">
               This is your post. Others need to unlock it to view contact details.
+            </div>
+          )}
+
+          {/* Post Validity Manager for creators */}
+          {isOwnPost && !authorUnavailable && (
+            <div className="mb-4">
+              <PostValidityManager post={post} />
             </div>
           )}
 
@@ -656,6 +873,7 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
               </motion.div>
             )}
           </AnimatePresence>
+
         </div>
 
         {/* Engagement */}
@@ -722,6 +940,13 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
               <span className={`text-sm font-medium ${viewMode === "grid" ? "text-xs" : ""}`}>{post.shares || 0}</span>
             </motion.button>
           </div>
+          <div>
+             <div className="text-xs text-black">
+                <span title={formatDetailedDate(post.createdAt)}>
+                  {formatRelativeTime(post.createdAt)}
+                </span>
+              </div>
+          </div>
         </motion.div>
 
         {/* Comments Section */}
@@ -751,6 +976,14 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
         />
       )}
       
+      {showEditModal && (
+        <EditPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          post={post}
+        />
+      )}
+      
       <ImageGalleryModal
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
@@ -758,6 +991,14 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
         isUnlocked={isUnlocked}
         authorUnavailable={authorUnavailable}
         onUnlock={handleUnlock}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        postTitle={post.title}
+        isLoading={deleteMutation.isPending}
       />
     </>
   );

@@ -3,6 +3,11 @@ import { API_ENDPOINTS } from "../endpoints";
 
 // User Deals API
 export const dealsApi = {
+  // Get user's deals workspace and history
+  getUserDealsWorkspace: () => {
+    return axiosInstance.get(API_ENDPOINTS.USER.GET_DEALS_WORKSPACE);
+  },
+
   // Get user deals (both as unlocker and author)
   getUserDeals: (params = {}) => {
     return axiosInstance.get(API_ENDPOINTS.DEALS.GET_USER_DEALS, { params });
@@ -31,6 +36,18 @@ export const dealsApi = {
   // Mark notification as read
   markNotificationAsRead: (notificationId) => {
     return axiosInstance.put(API_ENDPOINTS.DEALS.MARK_NOTIFICATION_READ(notificationId));
+  },
+
+  // Get user's posts with deal statistics
+  getUserPostsStats: (page = 1, limit = 10, status = "all") => {
+    return axiosInstance.get(API_ENDPOINTS.USER.GET_POSTS_STATS, {
+      params: { page, limit, status },
+    });
+  },
+
+  // Update deal toggle status (Won/Failed/Pending)
+  updateDealToggleStatus: (postId, dealToggleStatus) => {
+    return axiosInstance.put(API_ENDPOINTS.POSTS.UPDATE_DEAL_TOGGLE(postId), { dealToggleStatus });
   },
 };
 

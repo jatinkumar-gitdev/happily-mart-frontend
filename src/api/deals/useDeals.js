@@ -27,7 +27,16 @@ export const useUpdateDealStatus = () => {
       // Invalidate and refetch deal data
       queryClient.invalidateQueries(["deal", variables.id]);
       queryClient.invalidateQueries(["userDeals"]);
+      queryClient.invalidateQueries(["dealsWorkspace"]);
     },
+  });
+};
+
+export const useDealsWorkspace = () => {
+  return useQuery({
+    queryKey: ["dealsWorkspace"],
+    queryFn: () => dealsApi.getUserDealsWorkspace(),
+    staleTime: 1 * 60 * 1000,
   });
 };
 
@@ -100,5 +109,26 @@ export const useAdminDealAnalytics = () => {
   return useQuery({
     queryKey: ["adminDealAnalytics"],
     queryFn: () => adminDealsApi.getDealAnalytics(),
+  });
+};
+
+export const useUserPostsStats = (page = 1, limit = 10, status = "all") => {
+  return useQuery({
+    queryKey: ["userPostsStats", page, limit, status],
+    queryFn: () => dealsApi.getUserPostsStats(page, limit, status),
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useUpdateDealToggleStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ postId, status }) => dealsApi.updateDealToggleStatus(postId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["userPostsStats"]);
+      queryClient.invalidateQueries(["myPosts"]);
+      queryClient.invalidateQueries(["dealsWorkspace"]);
+    },
   });
 };

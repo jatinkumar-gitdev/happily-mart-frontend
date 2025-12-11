@@ -28,10 +28,11 @@ const Dashboard = () => {
     try {
       const response = await adminAxios.get('/admin/analytics/activity?limit=20');
       if (response.data.success) {
-        setActivity(response.data.activity);
+        setActivity(response.data.activity || []);
       }
     } catch (err) {
       console.error('Failed to fetch activity:', err);
+      setActivity([]);
     }
   }, []);
 

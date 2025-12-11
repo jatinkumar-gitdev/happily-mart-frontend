@@ -47,6 +47,17 @@ export const showLoading = (message, options = {}) =>
     ...options,
   });
 
+  export const showWarning = (message, options = {}) =>
+  toast.warning(message, {
+    ...baseOptions,
+    style: {
+      ...baseOptions.style,
+      background: "#d97706",
+    },
+    icon: "⚠️",
+    ...options,
+  });
+
 export const dismissToast = (toastId) => toast.dismiss(toastId);
 
 

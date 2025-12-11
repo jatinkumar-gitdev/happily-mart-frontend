@@ -28,6 +28,13 @@ export const postService = {
     return response.data;
   },
 
+  getMyPosts: async (params = {}) => {
+    const response = await axiosInstance.get(API_ENDPOINTS.POSTS.GET_ALL, {
+      params: { ...params, author: 'me' },
+    });
+    return response.data;
+  },
+
   getFavoritePosts: async (params = {}) => {
     const response = await axiosInstance.get(
       API_ENDPOINTS.POSTS.GET_FAVORITES,
@@ -103,6 +110,70 @@ export const postService = {
       return response.data;
     } catch (error) {
       showError(error.response?.data?.message || "Failed to unlock post");
+      throw error;
+    }
+  },
+
+  updateDealToggleStatus: async (id, dealToggleStatus) => {
+    try {
+      const response = await axiosInstance.put(API_ENDPOINTS.POSTS.UPDATE_DEAL_TOGGLE(id), { dealToggleStatus });
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to update deal toggle status");
+      throw error;
+    }
+  },
+
+  updatePostValidity: async (id, validityPeriod) => {
+    try {
+      const response = await axiosInstance.put(API_ENDPOINTS.POSTS.UPDATE_VALIDITY(id), { validityPeriod });
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to update post validity");
+      throw error;
+    }
+  },
+
+  getValidityOptions: async (id) => {
+    try {
+      const response = await axiosInstance.get(API_ENDPOINTS.POSTS.GET_VALIDITY_OPTIONS(id));
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to fetch validity options");
+      throw error;
+    }
+  },
+
+  // Add new method for incrementing view count
+  incrementViewCount: async (id) => {
+    try {
+      const response = await axiosInstance.post(API_ENDPOINTS.POSTS.INCREMENT_VIEW_COUNT(id));
+      return response.data;
+    } catch (error) {
+      // We don't show an error for view count increment failures as it's not critical
+      console.error("Failed to increment view count:", error);
+      return { success: false, message: "Failed to increment view count" };
+    }
+  },
+
+  // Add new method for editing a post
+  editPost: async (id, data) => {
+    try {
+      const response = await axiosInstance.put(API_ENDPOINTS.POSTS.EDIT(id), data);
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to edit post");
+      throw error;
+    }
+  },
+
+  // Add new method for deleting a post
+  deletePost: async (id, data = {}) => {
+    try {
+      const response = await axiosInstance.delete(API_ENDPOINTS.POSTS.EDIT(id), { data });
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to delete post");
       throw error;
     }
   },

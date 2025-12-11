@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
     REQUEST_REACTIVATION: "/user/account/request-reactivation",
     VERIFY_REACTIVATION: "/user/account/verify-reactivation",
     VERIFY_EMAIL_CHANGE: "/user/email/change/verify",
+    GET_DEALS_WORKSPACE: "/user/deals/workspace",
+    GET_POSTS_STATS: "/user/posts/stats",
   },
   // Admin Users
   ADMIN_USERS: {
@@ -55,6 +57,11 @@ export const API_ENDPOINTS = {
     ADD_COMMENT: (id) => `/posts/${id}/comment`,
     GET_COMMENTS: (id) => `/posts/${id}/comments`,
     UNLOCK: (id) => `/posts/${id}/unlock`,
+    UPDATE_DEAL_TOGGLE: (id) => `/posts/${id}/deal-toggle`,
+    UPDATE_VALIDITY: (id) => `/posts/${id}/validity`,
+    GET_VALIDITY_OPTIONS: (id) => `/posts/${id}/validity/options`,
+    INCREMENT_VIEW_COUNT: (id) => `/posts/${id}/view`,
+    EDIT: (id) => `/posts/${id}`, // Add new endpoint for editing posts
   },
   // Admin Posts
   ADMIN_POSTS: {

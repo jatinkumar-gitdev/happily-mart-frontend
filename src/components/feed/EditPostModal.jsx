@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FiX, FiUpload, FiTrash2 } from "react-icons/fi";
 import CreatableSelect from "react-select/creatable";
@@ -8,16 +8,12 @@ import Select from "../common/Select";
 import { postService } from "../../services/post.service";
 import { showSuccess, showError } from "../../utils/toast";
 import { usePostStore } from "../../store/postStore";
-import { useAuthStore } from "../../store/authStore";
 import { categoryOptions, subcategoryOptions, unitOptions } from "../../constants/PostFormUnitData";
-import SwitchToggle from "../common/SwitchToggle"; // Added import for SwitchToggle
+import SwitchToggle from "../common/SwitchToggle";
 
-const CreatePostModal = ({ isOpen, onClose }) => {
+const EditPostModal = ({ isOpen, onClose, post }) => {
   const queryClient = useQueryClient();
-  const { updateUser } = useAuthStore();
   const {
-    postFormData,
-    updateFormData,
     images,
     imagePreviews,
     addImage,
@@ -29,98 +25,82 @@ const CreatePostModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     title: "",
     requirement: "",
-    description: "", // Will be populated with template
-    editableDescription: "", // User's custom content
+    description: "",
+    editableDescription: "",
     quantity: "",
-    unit: "pcs", // Default unit
-    customUnit: "", // For custom unit when "other" is selected
+    unit: "pcs",
+    customUnit: "",
     hsnCode: "",
     category: null,
     subcategory: null,
     otherCategory: "",
-    isCreator: true, // Added isCreator field
-    validityPeriod: 7, // Added validityPeriod field
+    isCreator: true,
+    validityPeriod: 7,
   });
-  
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Ref for description field
-  const descriptionRef = useRef(null);
-
-  // Sync with store when modal opens
+  // Sync with post data when modal opens
   useEffect(() => {
-    if (isOpen && postFormData) {
-      setFormData(prev => ({
-        ...prev,
-        ...postFormData
-      }));
-    }
-  }, [isOpen, postFormData]);
-  
-  // Initialize the description template
-  useEffect(() => {
-    const template = `Product Request: [Title will be inserted here]
-
-Required Quantity: [Quantity] [Unit]
-HSN Code: [HSN Code will be inserted here]
-
-Basic Requirements: [Requirements will be inserted here]
-
-Detailed Specifications: 
-[Please provide detailed specifications here. Include information such as product specifications, preferred brands, quality standards, packaging requirements, delivery expectations, and any other relevant details.]
-
-Additional Notes: 
-[Please ensure all specifications meet industry standards and quality certifications.]
-
-----
-`;
-    setFormData(prev => ({ ...prev, description: template }));
-  }, []);
-
-  // Update only dynamic parts of description when key fields change
-  useEffect(() => {
-    // Get current description template
-    let updatedDescription = `Product Request: ${formData.title || '[Title will be inserted here]'}
-
-Required Quantity: ${formData.quantity || '[Quantity]'} ${formData.unit === "other" ? formData.customUnit || '[Unit]' : formData.unit || '[Unit]'}
-HSN Code: ${formData.hsnCode || '[HSN Code will be inserted here]'}
-
-Basic Requirements: ${formData.requirement || '[Requirements will be inserted here]'}
-
-Detailed Specifications: 
-[Please provide detailed specifications here. Include information such as product specifications, preferred brands, quality standards, packaging requirements, delivery expectations, and any other relevant details.]
-
-Additional Notes: 
-[Please ensure all specifications meet industry standards and quality certifications.]
-
-----
-`;
-    setFormData(prev => ({ ...prev, description: updatedDescription }));
-  }, [formData.title, formData.quantity, formData.unit, formData.customUnit, formData.hsnCode, formData.requirement])
-
-
-  const createPostMutation = useMutation({
-    mutationFn: (data) => postService.createPost(data),
-    onSuccess: (response) => {
-      showSuccess("Post created successfully!");
+    if (isOpen && post) {
+      // Parse the description to separate the template from editable content
+      const descriptionLines = post.description.split('\n');
+      let editableContent = "";
       
-      // Update user credits in auth store
-      if (response.remainingCreateCredits !== undefined) {
-        updateUser({
-          createCredits: response.remainingCreateCredits,
-          credits: response.remainingCredits,
-        });
+      // Find the line where editable content starts (after "Detailed Specifications:")
+      const detailedSpecsIndex = descriptionLines.findIndex(line => line.includes("Detailed Specifications:"));
+      if (detailedSpecsIndex !== -1 && detailedSpecsIndex < descriptionLines.length - 1) {
+        // Extract editable content (everything after "Detailed Specifications:" until "Additional Notes:")
+        const endIndex = descriptionLines.findIndex((line, index) => index > detailedSpecsIndex && line.includes("Additional Notes:"));
+        if (endIndex !== -1) {
+          editableContent = descriptionLines.slice(detailedSpecsIndex + 1, endIndex).join('\n').trim();
+        } else {
+          editableContent = descriptionLines.slice(detailedSpecsIndex + 1).join('\n').trim();
+        }
       }
       
-      // Invalidate cache to force fresh data fetch
-      queryClient.setQueryData(["posts", true], undefined);
-      queryClient.invalidateQueries({ queryKey: ["mySubscription"] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      setFormData({
+        title: post.title || "",
+        requirement: post.requirement || "",
+        description: post.description || "",
+        editableDescription: editableContent,
+        quantity: post.quantity || "",
+        unit: post.unit || "pcs",
+        customUnit: "",
+        hsnCode: post.hsnCode || "",
+        category: { value: post.category, label: post.category },
+        subcategory: { value: post.subcategory, label: post.subcategory },
+        otherCategory: "",
+        isCreator: post.isCreator || true,
+        validityPeriod: post.validityPeriod || 7,
+      });
+    }
+  }, [isOpen, post]);
+
+  const editPostMutation = useMutation({
+    mutationFn: (data) => postService.editPost(post._id, data),
+    onSuccess: (response) => {
+      showSuccess("Post updated successfully!");
+      
+      // Update the post in the feed
+      queryClient.setQueryData(["posts", true], (oldData) => {
+        if (!oldData) return oldData;
+        
+        const newData = {
+          ...oldData,
+          pages: oldData.pages.map(page => ({
+            ...page,
+            posts: page.posts.map(p => 
+              p._id === post._id ? { ...p, ...response.post } : p
+            ),
+          })),
+        };
+        
+        return newData;
+      });
       
       handleClose();
     },
     onError: (error) => {
-      showError(error.response?.data?.message || "Failed to create post");
+      showError(error.response?.data?.message || "Failed to update post");
     },
   });
 
@@ -172,12 +152,6 @@ Additional Notes:
       return;
     }
 
-    // Check if terms and conditions are accepted
-    if (!acceptedTerms) {
-      showError("Please accept the terms and conditions to create a post");
-      return;
-    }
-
     // Format the description with built-in static text and user's editable content
     const unitToUse = formData.unit === "other" ? formData.customUnit : formData.unit;
     
@@ -194,68 +168,23 @@ ${formData.editableDescription || '[Please provide detailed specifications here.
 Additional Notes: 
 [Please ensure all specifications meet industry standards and quality certifications.]`;
 
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("requirement", formData.requirement);
-    data.append("description", formattedDescription);
-    data.append("quantity", formData.quantity);
-    
-    // Append the appropriate unit
-    data.append("unit", unitToUse);
-    
-    data.append("hsnCode", formData.hsnCode);
-    
-    // Handle category (use otherCategory if 'other' is selected)
-    const categoryValue = formData.category.value === "other" 
-      ? formData.otherCategory 
-      : formData.category.value;
-    data.append("category", categoryValue);
-    
-    data.append("subcategory", formData.subcategory.value);
-    
-    // Append new fields
-    data.append("isCreator", formData.isCreator);
-    data.append("validityPeriod", formData.validityPeriod);
+    const data = {
+      title: formData.title,
+      requirement: formData.requirement,
+      description: formattedDescription,
+      quantity: formData.quantity,
+      unit: unitToUse,
+      hsnCode: formData.hsnCode,
+      category: formData.category.value === "other" 
+        ? formData.otherCategory 
+        : formData.category.value,
+      subcategory: formData.subcategory.value,
+    };
 
-    images.forEach((image) => {
-      data.append("images", image);
-    });
-
-    createPostMutation.mutate(data);
+    editPostMutation.mutate(data);
   };
 
   const handleClose = () => {
-    // Reset form and store
-    setFormData({
-      title: "",
-      requirement: "",
-      description: `Product Request: [Title will be inserted here]
-
-Required Quantity: [Quantity] [Unit]
-HSN Code: [HSN Code will be inserted here]
-
-Basic Requirements: [Requirements will be inserted here]
-
-Detailed Specifications: 
-[Please provide detailed specifications here. Include information such as product specifications, preferred brands, quality standards, packaging requirements, delivery expectations, and any other relevant details.]
-
-Additional Notes: 
-[Please ensure all specifications meet industry standards and quality certifications.]
-
-----
-`,
-      editableDescription: "",
-      quantity: "",
-      unit: "pcs",
-      customUnit: "",
-      hsnCode: "",
-      category: null,
-      subcategory: null,
-      otherCategory: "",
-      isCreator: true, // Reset isCreator
-      validityPeriod: 7, // Reset validityPeriod
-    });
-    setAcceptedTerms(false);
     resetForm();
     onClose();
   };
@@ -296,7 +225,7 @@ Additional Notes:
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Create New Post
+            Edit Post
           </h2>
           <button
             onClick={handleClose}
@@ -337,6 +266,7 @@ Additional Notes:
               enabledLabel="Creator"
               disabledLabel="Prospect"
               className="mb-2"
+              disabled={true} // Disable editing post type
             />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {formData.isCreator 
@@ -517,6 +447,7 @@ Additional Notes:
                     ? "border-sky-500 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300"
                     : "border-gray-300 dark:border-gray-600 hover:border-sky-300 dark:hover:border-sky-700"
                 }`}
+                disabled={true} // Disable editing validity period
               >
                 <div className="font-semibold">7 Days</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Standard</div>
@@ -529,6 +460,7 @@ Additional Notes:
                     ? "border-sky-500 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300"
                     : "border-gray-300 dark:border-gray-600 hover:border-sky-300 dark:hover:border-sky-700"
                 }`}
+                disabled={true} // Disable editing validity period
               >
                 <div className="font-semibold">15 Days</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Extended</div>
@@ -541,6 +473,7 @@ Additional Notes:
                     ? "border-sky-500 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300"
                     : "border-gray-300 dark:border-gray-600 hover:border-sky-300 dark:hover:border-sky-700"
                 }`}
+                disabled={true} // Disable editing validity period
               >
                 <div className="font-semibold">30 Days</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Premium</div>
@@ -560,7 +493,14 @@ Additional Notes:
             {/* Static Template Display (Non-editable) */}
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-2 font-mono text-sm">
               <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
-                {formData.description}
+                {`Product Request: ${formData.title || '[Title will be inserted here]'}
+
+Required Quantity: ${formData.quantity || '[Quantity]'} ${formData.unit === "other" ? formData.customUnit || '[Unit]' : formData.unit || '[Unit]'}
+HSN Code: ${formData.hsnCode || '[HSN Code will be inserted here]'}
+
+Basic Requirements: ${formData.requirement || '[Requirements will be inserted here]'}
+
+Detailed Specifications: `}
               </pre>
             </div>
             
@@ -640,31 +580,16 @@ Additional Notes:
             </Button>
             <Button
               type="submit"
-              disabled={createPostMutation.isPending}
+              disabled={editPostMutation.isPending}
               className="flex-1 bg-sky-500 hover:bg-sky-600"
             >
-              {createPostMutation.isPending ? "Creating..." : "Create Post"}
+              {editPostMutation.isPending ? "Updating..." : "Update Post"}
             </Button>
           </div>
         </form>
-        
-        {/* Terms and Conditions Checkbox */}
-        <div className="px-6 pb-6">
-          <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-1 h-4 w-4 text-sky-600 focus:ring-sky-500 border-gray-300 rounded"
-            />
-            <span>
-              I agree to the <a href="#" className="text-sky-600 hover:underline">terms and conditions</a>
-            </span>
-          </label>
-        </div>
       </div>
     </div>
   );
 };
 
-export default CreatePostModal;
+export default EditPostModal;
