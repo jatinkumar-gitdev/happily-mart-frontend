@@ -1,4 +1,5 @@
 import { FiAward, FiStar, FiZap, FiTrendingUp } from "react-icons/fi";
+import { getAvatarUrl } from "../../utils/avatarUtils";
 
 const getTierBadgeColors = (tier) => {
   switch (tier?.toLowerCase()) {
@@ -83,7 +84,7 @@ const AvatarWithTierBadge = ({
       >
         {avatar ? (
           <img
-            src={avatar}
+            src={getAvatarUrl(avatar)}
             alt={name}
             className="w-full h-full object-cover"
           />

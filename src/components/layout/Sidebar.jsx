@@ -21,7 +21,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
 
   const navItems = [
     {
-      to: "/",
+      to: "/feed",
       label: "Home",
       icon: FiHome,
     },
@@ -41,7 +41,7 @@ const Sidebar = ({ isOpen = false, onClose = () => {} }) => {
       icon: FiUsers,
     },
     {
-      to: "/feed",
+      to: "/",
       label: "Requirements",
       icon: MdDynamicFeed,
     },

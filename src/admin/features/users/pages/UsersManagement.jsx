@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { adminAxios } from "../../core";
-import { showError, showSuccess } from "../../../../utils/toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminService } from "../../../services/admin.service";
+import { showError, showSuccess } from "../../../utils/toast";
+import { formatDate } from "../../../utils/timeUtils";
+import { getAvatarUrl } from "../../../utils/avatarUtils";
 
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
@@ -243,7 +246,7 @@ const UsersManagement = () => {
                         {user.avatar ? (
                           <img
                             className="h-10 w-10 rounded-full object-cover"
-                            src={user.avatar}
+                            src={getAvatarUrl(user.avatar)}
                             alt=""
                           />
                         ) : (
@@ -386,7 +389,7 @@ const UsersManagement = () => {
                   {selectedUser.avatar ? (
                     <img
                       className="h-20 w-20 rounded-full object-cover"
-                      src={selectedUser.avatar}
+                      src={getAvatarUrl(selectedUser.avatar)}
                       alt=""
                     />
                   ) : (

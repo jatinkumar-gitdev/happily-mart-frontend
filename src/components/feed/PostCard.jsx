@@ -26,6 +26,7 @@ import EditPostModal from "./EditPostModal";
 import PostValidityManager from "../deal/PostValidityManager";
 import DeleteConfirmationModal from "../modals/DeleteConfirmationModal";
 import { formatDetailedDate, formatRelativeTime } from "../../utils/timeUtils";
+import { getAvatarUrl } from "../../utils/avatarUtils";
 
 const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMode = "list" }) => {
   const [showComments, setShowComments] = useState(false);
@@ -574,10 +575,9 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
             </div>
             <motion.div className="flex items-center gap-2 rounded-full py-2  bg-gradient-to-r from-sky-600 via-sky-700 to-[--button-bg]">
               <div className="text-white text-center flex items-center gap-2 text-sm"></div>
-
               <div className="flex gap-2 items-center ">
                 <img
-                  src={post.author?.avatar || "/default-avatar.png"}
+                  src={getAvatarUrl(post.author?.avatar) || "/default-avatar.png"}
                   alt={post.author?.name || "Author avatar"}
                   className="w-8 h-8 object-contain"
                 />
@@ -585,12 +585,12 @@ const PostCard = ({ post: initialPost, isBlurred = false, onUnlockClick, viewMod
                 <p className={`text-base text-white font-semibold tracking-wide truncate ${viewMode === "grid" ? "max-w-[100px]" : "pr-1.5"}`}>
                   {authorUnavailable ? "Unavailable Author" : post.author?.name}
                 </p>
-                <p>  {isOwnPost && (
+                <div>  {isOwnPost && (
                   <div className="flex items-center gap-1 text-xs text-white font-bold">
                   <span>{post.isCreator ? "Creator" : "Prospect"}</span>
                  </div>
                  )}
-                 </p>
+                 </div>
                </div>
                
                {/* Edit and Delete buttons for creators */}
