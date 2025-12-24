@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import MainLayout from "../components/layout/MainLayout";
-import { FiRefreshCw, FiEye, FiCheck, FiX, FiChevronLeft, FiChevronRight, FiFilter, FiCalendar } from "react-icons/fi";
+import { FiRefreshCw, FiEye, FiCheck, FiX, FiChevronLeft, FiChevronRight, FiFilter, FiCalendar, FiAlertTriangle } from "react-icons/fi";
 import { postService } from "../services/post.service";
 import { showError, showSuccess } from "../utils/toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,6 +17,10 @@ const Deals = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalPosts, setTotalPosts] = useState(0);
+  
+  // Lost modal state
+  const [isLostModalOpen, setIsLostModalOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
 
   // Fetch creator posts
   const fetchPosts = async () => {
@@ -55,6 +60,32 @@ const Deals = () => {
       fetchPosts(); // Refresh the list
     } catch (error) {
       showError(error.response?.data?.message || "Failed to update deal status");
+    }
+  };
+
+  // Open lost modal
+  const openLostModal = (post) => {
+    setSelectedPost(post);
+    setIsLostModalOpen(true);
+  };
+
+  // Close lost modal
+  const closeLostModal = () => {
+    setIsLostModalOpen(false);
+    setSelectedPost(null);
+  };
+
+  // Confirm mark as lost
+  const confirmMarkLost = async () => {
+    if (selectedPost) {
+      try {
+        const response = await postService.updateDealToggleStatus(selectedPost._id, "Fail");
+        showSuccess(response.message);
+        fetchPosts(); // Refresh the list
+        closeLostModal();
+      } catch (error) {
+        showError(error.response?.data?.message || "Failed to update deal status");
+      }
     }
   };
 
@@ -247,7 +278,7 @@ const Deals = () => {
                                   <FiCheck className="mr-1" /> Won
                                 </button>
                                 <button
-                                  onClick={() => handleDealToggle(post._id, "Fail")}
+                                  onClick={() => openLostModal(post)}
                                   className="text-red-600 hover:text-red-900 flex items-center"
                                 >
                                   <FiX className="mr-1" /> Lost
@@ -387,6 +418,54 @@ const Deals = () => {
           </>
         )}
       </div>
+
+      {/* Lost Confirmation Modal */}
+      <AnimatePresence>
+        {isLostModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                  <FiAlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Mark Deal as Lost?
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to mark this deal as lost?
+                  </p>
+                  {selectedPost && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Post: {selectedPost.title}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={closeLostModal}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmMarkLost}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Yes, Mark as Lost
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </MainLayout>
   );
 };

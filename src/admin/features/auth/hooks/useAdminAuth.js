@@ -11,6 +11,8 @@ export const useAdminAuth = () => {
     adminLogout,
     setLoading,
     initializeAuth,
+    verifyAdminToken,
+    syncWithCookies,
   } = useAdminStore();
 
   const adminLogin = async (email, password, rememberMe = false) => {
@@ -54,16 +56,14 @@ export const useAdminAuth = () => {
 
   const verifyAdminAuth = async () => {
     try {
-      const hasLocalAuth = initializeAuth();
-      if (!hasLocalAuth) return false;
-
-      const response = await adminAxios.get("/auth/me");
-      if (response.data?.user?.role === "admin") {
-        setAdminAuth(response.data.user);
-        return true;
-      }
-      adminLogout();
-      return false;
+      // Sync with cookies first
+      syncWithCookies();
+      
+      // Always attempt server-side verification. This ensures support for
+      // httpOnly cookies that cannot be read by JS but are sent to the
+      // backend with `withCredentials: true`.
+      const verified = await verifyAdminToken({ getProfile: () => adminAxios.get("/auth/me") });
+      return verified;
     } catch (error) {
       adminLogout();
       return false;
@@ -78,5 +78,8 @@ export const useAdminAuth = () => {
     adminLogout,
     verifyAdminAuth,
     initializeAuth,
+    setAdminAuth,
+    verifyAdminToken,
+    syncWithCookies,
   };
 };

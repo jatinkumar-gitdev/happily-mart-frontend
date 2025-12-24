@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FiCheck, FiX, FiRefreshCw, FiFilter, FiChevronDown, FiCalendar } from "react-icons/fi";
+import { FiCheck, FiX, FiRefreshCw, FiFilter, FiChevronDown, FiCalendar, FiAlertTriangle } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import { postService } from "../../services/post.service";
 import useSocket from "../../hooks/useSocket";
 import { showError, showSuccess } from "../../utils/toast";
@@ -12,6 +13,8 @@ const MyDeals = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [postsPerPage] = useState(10);
   const [localPosts, setLocalPosts] = useState([]);
+  const [isLostModalOpen, setIsLostModalOpen] = useState(false);
+  const [postToMarkLost, setPostToMarkLost] = useState(null);
   const queryClient = useQueryClient();
   const { on, off } = useSocket();
 
@@ -97,6 +100,23 @@ const MyDeals = () => {
   // Handle deal toggle
   const handleDealToggle = (postId, status) => {
     updateDealToggleMutation.mutate({ postId, dealToggleStatus: status });
+  };
+
+  const openLostModal = (post) => {
+    setPostToMarkLost(post);
+    setIsLostModalOpen(true);
+  };
+
+  const closeLostModal = () => {
+    setIsLostModalOpen(false);
+    setPostToMarkLost(null);
+  };
+
+  const confirmMarkLost = () => {
+    if (postToMarkLost) {
+      handleDealToggle(postToMarkLost._id, "Fail");
+      closeLostModal();
+    }
   };
 
   // Handle page change
@@ -275,7 +295,7 @@ const MyDeals = () => {
                             <FiCheck className="mr-1" /> Won
                           </button>
                           <button
-                            onClick={() => handleDealToggle(post._id, "Fail")}
+                            onClick={() => openLostModal(post)}
                             disabled={updateDealToggleMutation.isPending}
                             className="text-red-600 hover:text-red-900 flex items-center"
                           >
@@ -330,6 +350,48 @@ const MyDeals = () => {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isLostModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                  <FiAlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Mark Deal as Lost?
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to mark this deal as lost?
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={closeLostModal}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmMarkLost}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Yes, Mark as Lost
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -18,16 +18,11 @@ const PrivateAdminRoute = ({ children }) => {
 
   useEffect(() => {
     const verifyAdmin = async () => {
-      // First check if we have a token in cookies
-      const token = adminCookieManager.getAccessToken();
-      
-      if (!token) {
-        setIsVerifying(false);
-        return;
-      }
-
+      // Always attempt to verify with backend. This allows support for
+      // httpOnly cookies (which are not readable via JS) and prevents
+      // redirecting to login on page refresh when the cookie exists but
+      // cannot be accessed by `js-cookie`.
       try {
-        // Verify token with backend
         const response = await adminAxios.get("/auth/me");
         if (response.data?.user?.role === "admin") {
           setAdminAuth(response.data.user);
@@ -35,17 +30,21 @@ const PrivateAdminRoute = ({ children }) => {
           adminLogout();
         }
       } catch (error) {
+        // If backend verification fails, clear auth
         adminLogout();
       } finally {
         // Add a small delay to show the loader
         setTimeout(() => {
           setIsVerifying(false);
-        }, 1000);
+        }, 500);
       }
     };
 
+    // Run only on mount. Removing `adminUser` from the dependency array
+    // prevents an update loop where `setAdminAuth` changes `adminUser`,
+    // which would re-trigger this effect.
     verifyAdmin();
-  }, [adminUser]); // Add adminUser as dependency to re-run when it changes
+  }, []);
 
   if (isVerifying) {
     return <AdminLoader />;

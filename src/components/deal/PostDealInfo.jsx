@@ -5,6 +5,7 @@ import DealProgressIndicator from "./DealProgressIndicator";
 const PostDealInfo = ({ 
   deal, 
   onStatusUpdate, 
+  onFailStatusUpdate, // Optional function to handle fail status update with confirmation
   showProgress = true, 
   compact = false,
   isLoading = false 
@@ -24,7 +25,10 @@ const PostDealInfo = ({
   const canUpdateStatus = deal.status !== "Closed" && deal.status !== "Success" && deal.status !== "Fail";
 
   const handleQuickUpdate = (newStatus) => {
-    if (onStatusUpdate && canUpdateStatus) {
+    if (newStatus === 'Fail' && onFailStatusUpdate) {
+      // Use the confirmation function if provided for Fail status
+      onFailStatusUpdate(deal._id || deal.id, newStatus);
+    } else if (onStatusUpdate && canUpdateStatus) {
       onStatusUpdate(deal._id || deal.id, newStatus);
     }
   };

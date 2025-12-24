@@ -16,20 +16,15 @@ axiosInstance.interceptors.request.use(
     const isAdminRequest = config.url.includes("/admin/");
     
     if (isAdminRequest) {
-      let token = localStorage.getItem("adminToken") || Cookies.get("adminToken");
+      let token = Cookies.get("adminToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } else {
-      const isRemembered = localStorage.getItem("rememberMe") === "true";
-      const storage = isRemembered ? localStorage : sessionStorage;
-      let token = storage.getItem("authToken") || Cookies.get("accessToken");
+      let token = Cookies.get("accessToken");
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        if (!storage.getItem("authToken")) {
-          storage.setItem("authToken", token);
-        }
       }
     }
 
@@ -65,24 +60,22 @@ axiosInstance.interceptors.response.use(
         const { accessToken } = response.data;
 
         if (isAdminRequest) {
-          const isRemembered = localStorage.getItem("adminRememberMe") === "true";
+          // For admin requests, use admin cookie manager
+          const rememberMe = Cookies.get("adminRememberMe") === "true";
           Cookies.set("adminToken", accessToken, {
-            expires: isRemembered ? 30 : 1,
+            expires: rememberMe ? 30 : 1,
             secure: import.meta.env.MODE === "production",
-            sameSite: "strict",
+            sameSite: "lax",
             path: "/",
           });
-          if (isRemembered) {
-            localStorage.setItem("adminToken", accessToken);
-          }
         } else {
-          const isRemembered = localStorage.getItem("rememberMe") === "true";
-          const storage = isRemembered ? localStorage : sessionStorage;
-          storage.setItem("authToken", accessToken);
+          // For regular user requests, use the access token cookie
+          const rememberMe = localStorage.getItem("rememberMePreference") === "true";
           Cookies.set("accessToken", accessToken, {
-            expires: isRemembered ? 30 : 1,
+            expires: rememberMe ? 30 : 1,
             secure: import.meta.env.MODE === "production",
-            sameSite: "strict",
+            sameSite: "lax",
+            path: "/",
           });
         }
 
@@ -91,17 +84,14 @@ axiosInstance.interceptors.response.use(
       } catch (refreshError) {
         if (isAdminRequest) {
           Cookies.remove("adminToken", { path: "/" });
-          localStorage.removeItem("adminToken");
-          localStorage.removeItem("adminRememberMe");
-          localStorage.removeItem("adminUser");
+          Cookies.remove("adminRefreshToken", { path: "/" });
           window.location.href = "/admin/login";
         } else {
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("rememberMePreference");
           localStorage.removeItem("auth-storage");
           sessionStorage.clear();
-          Cookies.remove("accessToken");
-          Cookies.remove("refreshToken");
+          Cookies.remove("accessToken", { path: "/" });
+          Cookies.remove("refreshToken", { path: "/" });
           const currentPath = window.location.pathname;
           window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
         }

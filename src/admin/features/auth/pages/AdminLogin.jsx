@@ -60,8 +60,11 @@ const AdminLogin = () => {
     }
   };
 
-  // If already authenticated, show loader and redirect
+  // If already authenticated, redirect to dashboard
   if (isAdminAuthenticated) {
+    setTimeout(() => {
+      navigate("/admin/dashboard", { replace: true });
+    }, 0);
     return <AdminLoader />;
   }
 

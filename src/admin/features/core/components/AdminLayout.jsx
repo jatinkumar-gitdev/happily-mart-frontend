@@ -9,19 +9,21 @@ const AdminLayout = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Default to false since auth is handled by route
   const navigate = useNavigate();
   const location = useLocation();
-  const { adminLogout, adminUser } = useAdminAuth();
+  const { adminLogout, adminUser, isAdminAuthenticated } = useAdminAuth(); // Removed verifyAdminAuth
 
   // Show loader when location changes
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500); // Show loader for 500ms when navigating between routes
-    
-    return () => clearTimeout(timer);
+    if (location.pathname) {
+      setLoading(true);
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 500); // Show loader for 500ms when navigating between routes
+      
+      return () => clearTimeout(timer);
+    }
   }, [location.pathname]);
 
   // Fetch admin notifications

@@ -5,7 +5,7 @@ const ADMIN_REFRESH_TOKEN_NAME = "adminRefreshToken";
 
 const cookieOptions = {
   secure: import.meta.env.MODE === "production",
-  sameSite: "lax",
+  sameSite: "lax", // Changed from strict to lax to be consistent with backend
   path: "/",
 };
 

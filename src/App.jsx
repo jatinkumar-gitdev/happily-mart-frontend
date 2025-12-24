@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
@@ -8,6 +8,7 @@ import { useAuthStore } from "./store/authStore";
 import { useAdminStore } from "./store/adminStore";
 import { authService } from "./services/auth.service";
 import { cookieManager } from "./utils/cookieManager";
+import { adminAuthAPI } from "./services/admin.service";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,8 @@ function App() {
   const { theme } = useThemeStore();
   const location = useLocation();
   const { setUser, logout } = useAuthStore();
-  const { initializeAuth: initializeAdminAuth } = useAdminStore();
+  const { initializeAuth: initializeAdminAuth, verifyAdminToken, adminUser, isAdminAuthenticated, syncWithCookies } = useAdminStore();
+  const initializedRef = useRef(false); // Use ref to track initialization
 
   const isAuthPage =
     location.pathname === "/login" ||
@@ -31,10 +33,17 @@ function App() {
     location.pathname === "/reset-password";
 
   useEffect(() => {
-    // Initialize admin auth state only once
-    const isAdminRoute = location.pathname.startsWith("/admin");
-    if (isAdminRoute) {
-      initializeAdminAuth();
+    // Initialize admin auth state on app load - only run once
+    if (!initializedRef.current) {
+      initializedRef.current = true; // Mark as initialized
+      
+      // First, sync the store state with actual cookies to override any outdated persisted state
+      syncWithCookies();
+      
+      // Then, if there's a token in cookies but no user data, verify it
+      if (isAdminAuthenticated && !adminUser) {
+        verifyAdminToken(adminAuthAPI);
+      }
     }
     
     // Initialize user auth state
@@ -54,7 +63,7 @@ function App() {
           logout();
         });
     }
-  }, []); // Empty dependency array to run only once
+  }, [syncWithCookies, verifyAdminToken, adminUser, isAdminAuthenticated]); // Include dependencies
 
   useEffect(() => {
     const root = document.documentElement;

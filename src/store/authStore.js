@@ -17,17 +17,6 @@ const useAuthStore = create(
         if (token) {
           const expiryDays = rememberMe ? 30 : 1;
           cookieManager.set("accessToken", token, { expires: expiryDays });
-          
-          // Store token in appropriate storage based on rememberMe
-          if (rememberMe) {
-            localStorage.setItem("authToken", token);
-            localStorage.setItem("rememberMe", "true");
-            sessionStorage.removeItem("authToken");
-          } else {
-            sessionStorage.setItem("authToken", token);
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("rememberMe");
-          }
         }
         localStorage.setItem("rememberMePreference", rememberMe ? "true" : "false");
         if (!rememberMe) {
@@ -50,10 +39,10 @@ const useAuthStore = create(
         } finally {
           cookieManager.clear();
           // Clear all storage
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("rememberMePreference");
+          localStorage.removeItem("rememberedEmail");
           localStorage.removeItem("auth-storage");
-          sessionStorage.removeItem("authToken");
+          sessionStorage.clear();
           set({
             user: null,
             accessToken: null,
@@ -92,13 +81,8 @@ const useAuthStore = create(
 
           const refreshTask = (async () => {
             try {
-              const rememberMe = localStorage.getItem("rememberMe") === "true";
-              const storage = rememberMe ? localStorage : sessionStorage;
-              let token = storage.getItem("authToken");
-
-              if (!token) {
-                token = cookieManager.get("accessToken");
-              }
+              const rememberMe = localStorage.getItem("rememberMePreference") === "true";
+              let token = cookieManager.get("accessToken");
 
               if (!token) {
                 await get().logout();

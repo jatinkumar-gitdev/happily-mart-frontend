@@ -134,6 +134,16 @@ export const postService = {
     }
   },
 
+  getValidityOptions: async (id) => {
+    try {
+      const response = await axiosInstance.get(API_ENDPOINTS.POSTS.GET_VALIDITY_OPTIONS(id));
+      return response.data;
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to fetch validity options");
+      throw error;
+    }
+  },
+
   // Add new method for incrementing view count
   incrementViewCount: async (id) => {
     try {

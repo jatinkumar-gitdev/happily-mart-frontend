@@ -5,11 +5,16 @@ import AdminDashboard from '../components/admin/AdminDashboard';
 import AdminDealsManagement from '../components/admin/AdminDealsManagement';
 import AdminDealDetails from '../components/admin/AdminDealDetails';
 import AdminAnalytics from '../components/admin/AdminAnalytics';
+import AdminPrivateRoute from './AdminPrivateRoute';
 
 const AdminRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<AdminLayout />}>
+      <Route path="/" element={
+        <AdminPrivateRoute>
+          <AdminLayout />
+        </AdminPrivateRoute>
+      }>
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="deals" element={<AdminDealsManagement />} />

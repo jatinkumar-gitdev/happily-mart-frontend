@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminService } from "../../../services/admin.service";
-import { showError, showSuccess } from "../../../utils/toast";
-import { formatDate } from "../../../utils/timeUtils";
-import { getAvatarUrl } from "../../../utils/avatarUtils";
+import { useAdminUsers, useUpdateAdminUser, useDeactivateAdminUser } from "../../core/hooks/useAdminAPI";
+import { showError, showSuccess } from "../../../../utils/toast";
+import { getAvatarUrl } from "../../../../utils/avatarUtils";
 
 const UsersManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     page: 1,
     pages: 1,
@@ -33,42 +30,40 @@ const UsersManagement = () => {
     credits: 0,
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [pagination.page, filters]);
+  const queryClient = useQueryClient();
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAxios.get("/admin/users", {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          ...filters,
-        },
-      });
-      setUsers(response.data.users);
-      setPagination((prev) => ({
+  // Fetch users using React Query hook
+  const { data: usersData, isLoading, error } = useAdminUsers({
+    page: pagination.page,
+    limit: pagination.limit,
+    ...filters,
+  });
+
+  // Mutations
+  const updateMutation = useUpdateAdminUser();
+  const deactivateMutation = useDeactivateAdminUser();
+
+  // Update state when data changes
+  useEffect(() => {
+    if (usersData) {
+      setPagination(prev => ({
         ...prev,
-        pages: response.data.pages,
-        total: response.data.total,
+        pages: usersData.pages,
+        total: usersData.total,
       }));
-    } catch (error) {
-      showError("Failed to fetch users");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [usersData]);
 
   const handleDeactivateUser = async (userId, currentStatus) => {
     const action = currentStatus ? "deactivate" : "activate";
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+    
     try {
-      await adminAxios.put(`/admin/users/${userId}/status`, {
-        isActive: !currentStatus,
+      await deactivateMutation.mutateAsync({
+        id: userId,
+        data: { isActive: !currentStatus }
       });
       showSuccess(`User ${action}d successfully`);
-      fetchUsers();
     } catch (error) {
       showError(`Failed to ${action} user`);
     }
@@ -77,11 +72,13 @@ const UsersManagement = () => {
   const handleEditUser = async () => {
     if (!selectedUser) return;
     try {
-      await adminAxios.put(`/admin/users/${selectedUser._id}`, editForm);
+      await updateMutation.mutateAsync({
+        id: selectedUser._id,
+        data: editForm
+      });
       showSuccess("User updated successfully");
       setShowEditModal(false);
       setSelectedUser(null);
-      fetchUsers();
     } catch (error) {
       showError(error.response?.data?.message || "Failed to update user");
     }
@@ -109,14 +106,6 @@ const UsersManagement = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const getRoleBadgeColor = (role) => {
     const colors = {
       admin: "bg-purple-100 text-purple-800",
@@ -135,6 +124,19 @@ const UsersManagement = () => {
     };
     return colors[plan] || "bg-gray-100 text-gray-800";
   };
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="text-center py-12">
+          <p className="text-red-500">Error loading users: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const users = usersData?.users || [];
+  const loading = isLoading || updateMutation.isPending || deactivateMutation.isPending;
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -303,9 +305,9 @@ const UsersManagement = () => {
                       {user.isActive !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(user.createdAt)}
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
                       onClick={() => openDetailModal(user)}
@@ -346,7 +348,7 @@ const UsersManagement = () => {
           <div className="flex space-x-2">
             <button
               onClick={() =>
-                setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+                setPagination((prev) => ({ ...prev, page: Math.max(prev.page - 1, 1) }))
               }
               disabled={pagination.page === 1}
               className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -355,7 +357,7 @@ const UsersManagement = () => {
             </button>
             <button
               onClick={() =>
-                setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+                setPagination((prev) => ({ ...prev, page: Math.min(prev.page + 1, pagination.pages) }))
               }
               disabled={pagination.page === pagination.pages}
               className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -630,8 +632,9 @@ const UsersManagement = () => {
                 <button
                   onClick={handleEditUser}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={updateMutation.isPending}
                 >
-                  Save Changes
+                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
