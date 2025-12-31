@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAdminUsers, useUpdateAdminUser, useDeactivateAdminUser } from "../../core/hooks/useAdminAPI";
 import { showError, showSuccess } from "../../../../utils/toast";
 import { getAvatarUrl } from "../../../../utils/avatarUtils";
+import { formatDate } from "../../../../utils/helpers";
 
 const UsersManagement = () => {
   const [pagination, setPagination] = useState({
@@ -38,7 +39,7 @@ const UsersManagement = () => {
     limit: pagination.limit,
     ...filters,
   });
-
+  
   // Mutations
   const updateMutation = useUpdateAdminUser();
   const deactivateMutation = useDeactivateAdminUser();
@@ -64,6 +65,7 @@ const UsersManagement = () => {
         data: { isActive: !currentStatus }
       });
       showSuccess(`User ${action}d successfully`);
+      queryClient.invalidateQueries({ queryKey: ["admin.users"] });
     } catch (error) {
       showError(`Failed to ${action} user`);
     }
@@ -77,6 +79,7 @@ const UsersManagement = () => {
         data: editForm
       });
       showSuccess("User updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin.users"] });
       setShowEditModal(false);
       setSelectedUser(null);
     } catch (error) {
@@ -135,7 +138,7 @@ const UsersManagement = () => {
     );
   }
 
-  const users = usersData?.users || [];
+  const users = usersData?.data?.users || [];
   const loading = isLoading || updateMutation.isPending || deactivateMutation.isPending;
 
   return (
@@ -305,9 +308,9 @@ const UsersManagement = () => {
                       {user.isActive !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(user.createdAt)}
-                  </td> */}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
                       onClick={() => openDetailModal(user)}

@@ -15,6 +15,8 @@ const MyDeals = () => {
   const [localPosts, setLocalPosts] = useState([]);
   const [isLostModalOpen, setIsLostModalOpen] = useState(false);
   const [postToMarkLost, setPostToMarkLost] = useState(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [postToReset, setPostToReset] = useState(null);
   const queryClient = useQueryClient();
   const { on, off } = useSocket();
 
@@ -97,11 +99,6 @@ const MyDeals = () => {
     },
   });
 
-  // Handle deal toggle
-  const handleDealToggle = (postId, status) => {
-    updateDealToggleMutation.mutate({ postId, dealToggleStatus: status });
-  };
-
   const openLostModal = (post) => {
     setPostToMarkLost(post);
     setIsLostModalOpen(true);
@@ -117,6 +114,28 @@ const MyDeals = () => {
       handleDealToggle(postToMarkLost._id, "Fail");
       closeLostModal();
     }
+  };
+
+  const openResetModal = (post) => {
+    setPostToReset(post);
+    setIsResetModalOpen(true);
+  };
+
+  const closeResetModal = () => {
+    setIsResetModalOpen(false);
+    setPostToReset(null);
+  };
+
+  const confirmReset = () => {
+    if (postToReset) {
+      handleDealToggle(postToReset._id, "Pending");
+      closeResetModal();
+    }
+  };
+
+  // Handle deal toggle
+  const handleDealToggle = (postId, status) => {
+    updateDealToggleMutation.mutate({ postId, dealToggleStatus: status });
   };
 
   // Handle page change
@@ -304,7 +323,7 @@ const MyDeals = () => {
                         </div>
                       ) : (
                         <button
-                          onClick={() => handleDealToggle(post._id, "Pending")}
+                          onClick={() => openResetModal(post)}
                           disabled={updateDealToggleMutation.isPending}
                           className="text-gray-600 hover:text-gray-900 flex items-center"
                         >
@@ -351,6 +370,7 @@ const MyDeals = () => {
         </div>
       </div>
 
+      {/* Lost confirmation modal */}
       <AnimatePresence>
         {isLostModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -386,6 +406,49 @@ const MyDeals = () => {
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                 >
                   Yes, Mark as Lost
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Reset confirmation modal */}
+      <AnimatePresence>
+        {isResetModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                  <FiAlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Reset Deal Status?
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to reset this deal? This will deduct 1 point from your subscription.
+                  </p>
+                </div>
+              </div>
+            
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={closeResetModal}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmReset}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
+                >
+                  Yes, Reset Deal
                 </button>
               </div>
             </motion.div>
